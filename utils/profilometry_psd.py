@@ -217,6 +217,86 @@ class MagnificationEvolutionResult:
     mask_sensitivity_sq_um: np.ndarray
     mask_sensitivity_sal_um: np.ndarray
     mask_sensitivity_band_power_um2: np.ndarray
+    line_psd_axis0_um3: np.ndarray
+    line_psd_axis1_um3: np.ndarray
+    output_dir: Path
+
+
+@dataclass(frozen=True)
+class SmallWavelengthCutoffResult:
+    """50x high-frequency reliability cutoff from the 2D/1D PSD ratio."""
+
+    times_hours: np.ndarray
+    wavelength_um: np.ndarray
+    normalized_ratio_axis0: np.ndarray
+    normalized_ratio_axis1: np.ndarray
+    cutoff_axis0_um: np.ndarray
+    cutoff_axis1_um: np.ndarray
+    cutoff_um: np.ndarray
+    ci_low_um: np.ndarray
+    ci_high_um: np.ndarray
+    detected: np.ndarray
+    bootstrap_detection_fraction: np.ndarray
+    status: np.ndarray
+
+
+@dataclass(frozen=True)
+class LargeWavelengthCutoffResult:
+    """10x low-frequency roll-off estimates and field-size diagnostics."""
+
+    times_hours: np.ndarray
+    window_fractions: np.ndarray
+    window_short_side_um: np.ndarray
+    cutoff_um: np.ndarray
+    ci_low_um: np.ndarray
+    ci_high_um: np.ndarray
+    delta_bic: np.ndarray
+    scaling_slope: np.ndarray
+    detected: np.ndarray
+    bootstrap_detection_fraction: np.ndarray
+    full_window_stable: np.ndarray
+
+
+@dataclass(frozen=True)
+class SpectralChangeResult:
+    """Paired PSD changes with a simultaneous confidence band."""
+
+    label: str
+    wavelength_um: np.ndarray
+    log10_psd_ratio: np.ndarray
+    estimate: np.ndarray
+    simultaneous_ci_low: np.ndarray
+    simultaneous_ci_high: np.ndarray
+    significant: np.ndarray
+    valid_morphology_band: np.ndarray
+
+
+@dataclass(frozen=True)
+class PowerRelevanceResult:
+    """Central wavelength interval containing a specified height variance."""
+
+    fraction: float
+    specimen_bounds_um: np.ndarray
+    estimate_bounds_um: np.ndarray
+    ci_low_bounds_um: np.ndarray
+    ci_high_bounds_um: np.ndarray
+
+
+@dataclass(frozen=True)
+class WavelengthSelectionResult:
+    """Data-derived morphology cutoffs and evolution-relevant wavelengths."""
+
+    small: SmallWavelengthCutoffResult
+    large: LargeWavelengthCutoffResult
+    fine_change: SpectralChangeResult
+    coarse_change: SpectralChangeResult
+    power: PowerRelevanceResult
+    morphology_lambda_min_um: float
+    morphology_lambda_max_um: float
+    power_lambda_min_um: float
+    power_lambda_max_um: float
+    evolution_lambda_min_um: float
+    evolution_lambda_max_um: float
     output_dir: Path
 
 
@@ -229,6 +309,7 @@ class CompleteAnalysisResult:
     coarse: MagnificationEvolutionResult
     overlap_wavelength_um: tuple[float, float]
     overlap_log10_psd_ratio: np.ndarray
+    wavelength_selection: WavelengthSelectionResult
     output_dir: Path
 
 
@@ -1699,6 +1780,74 @@ def _bootstrap_keyword_args(seed: int) -> dict[str, object]:
     return {"random_state": rng}
 
 
+def _radial_average_from_2d_psd(
+    full_2d: PSD2DResult,
+    *,
+    spacing_um: float | tuple[float, float],
+    min_modes_per_bin: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return frequency, specimen radial PSDs, and mode counts."""
+    f0 = full_2d.frequency_axis0_um_inv
+    f1 = full_2d.frequency_axis1_um_inv
+    nsamples, n0, n1 = full_2d.specimen_psd_um4.shape
+    d0, d1 = _as_spacing_tuple(spacing_um)
+
+    radial_frequency = np.hypot(f0[:, None], f1[None, :])
+    df0 = 1.0 / (n0 * d0)
+    df1 = 1.0 / (n1 * d1)
+    bin_width = max(df0, df1)
+    full_annulus_limit = min(0.5 / d0, 0.5 / d1)
+    edges = np.arange(
+        0.5 * bin_width,
+        full_annulus_limit + np.finfo(float).eps * full_annulus_limit,
+        bin_width,
+    )
+    if edges.size < 2:
+        raise ValueError("The map is too small to construct radial-frequency bins.")
+
+    number_bins = edges.size - 1
+    radial_flat = radial_frequency.ravel()
+    bin_index = np.searchsorted(edges, radial_flat, side="right") - 1
+    valid_mode = (bin_index >= 0) & (bin_index < number_bins)
+    valid_bin_index = bin_index[valid_mode]
+    modes_per_bin = np.bincount(valid_bin_index, minlength=number_bins)
+    frequency_sum = np.bincount(
+        valid_bin_index,
+        weights=radial_flat[valid_mode],
+        minlength=number_bins,
+    )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        bin_frequency = frequency_sum / modes_per_bin
+
+    retained = (
+        (modes_per_bin >= int(min_modes_per_bin))
+        & np.isfinite(bin_frequency)
+        & (bin_frequency > 0.0)
+    )
+    if not np.any(retained):
+        raise ValueError("No radial bins satisfy min_modes_per_bin.")
+
+    specimen_psd = np.empty(
+        (nsamples, int(np.count_nonzero(retained))),
+        dtype=np.float64,
+    )
+    for specimen_index, psd_2d in enumerate(full_2d.specimen_psd_um4):
+        annular_sum = np.bincount(
+            valid_bin_index,
+            weights=psd_2d.ravel()[valid_mode],
+            minlength=number_bins,
+        )
+        with np.errstate(divide="ignore", invalid="ignore"):
+            radial_psd = annular_sum / modes_per_bin
+        specimen_psd[specimen_index] = radial_psd[retained]
+
+    return (
+        bin_frequency[retained],
+        specimen_psd,
+        modes_per_bin[retained],
+    )
+
+
 def radial_psd_at_time(
     height_maps_um: np.ndarray,
     time_index: int,
@@ -1773,68 +1922,13 @@ def radial_psd_at_time(
     else:
         full_2d = _full_2d
 
-    f0 = full_2d.frequency_axis0_um_inv
-    f1 = full_2d.frequency_axis1_um_inv
-    nsamples, n0, n1 = full_2d.specimen_psd_um4.shape
-    d0, d1 = _as_spacing_tuple(spacing_um)
-
-    radial_frequency = np.hypot(f0[:, None], f1[None, :])
-
-    df0 = 1.0 / (n0 * d0)
-    df1 = 1.0 / (n1 * d1)
-    bin_width = max(df0, df1)
-    full_annulus_limit = min(0.5 / d0, 0.5 / d1)
-
-    edges = np.arange(
-        0.5 * bin_width,
-        full_annulus_limit + np.finfo(float).eps * full_annulus_limit,
-        bin_width,
-    )
-
-    if edges.size < 2:
-        raise ValueError("The map is too small to construct radial-frequency bins.")
-
-    nbins = edges.size - 1
-    radial_frequency_flat = radial_frequency.ravel()
-
-    bin_index = np.searchsorted(
-        edges,
-        radial_frequency_flat,
-        side="right",
-    ) - 1
-
-    valid_mode = (bin_index >= 0) & (bin_index < nbins)
-    valid_bin_index = bin_index[valid_mode]
-
-    modes_per_bin = np.bincount(valid_bin_index, minlength=nbins)
-    frequency_sum = np.bincount(
-        valid_bin_index,
-        weights=radial_frequency_flat[valid_mode],
-        minlength=nbins,
-    )
-
-    with np.errstate(divide="ignore", invalid="ignore"):
-        bin_frequency = frequency_sum / modes_per_bin
-
-    retained_bin = (modes_per_bin >= min_modes_per_bin) & np.isfinite(bin_frequency)
-
-    if not np.any(retained_bin):
-        raise ValueError("No radial bins satisfy min_modes_per_bin.")
-
-    number_retained = int(np.count_nonzero(retained_bin))
-    specimen_psd = np.empty((nsamples, number_retained), dtype=np.float64)
-
-    for specimen_index, psd_2d in enumerate(full_2d.specimen_psd_um4):
-        annular_sum = np.bincount(
-            valid_bin_index,
-            weights=psd_2d.ravel()[valid_mode],
-            minlength=nbins,
+    retained_frequency, specimen_psd, retained_modes = (
+        _radial_average_from_2d_psd(
+            full_2d,
+            spacing_um=spacing_um,
+            min_modes_per_bin=min_modes_per_bin,
         )
-
-        with np.errstate(divide="ignore", invalid="ignore"):
-            radial_psd = annular_sum / modes_per_bin
-
-        specimen_psd[specimen_index] = radial_psd[retained_bin]
+    )
 
     estimator_name, estimator = _specimen_estimator(use_median)
 
@@ -1853,8 +1947,6 @@ def radial_psd_at_time(
         **_bootstrap_keyword_args(seed),
     )
 
-    retained_frequency = bin_frequency[retained_bin]
-
     return RadialPSDResult(
         frequency_um_inv=retained_frequency,
         wavelength_um=1.0 / retained_frequency,
@@ -1862,10 +1954,65 @@ def radial_psd_at_time(
         mean_psd_um4=np.mean(specimen_psd, axis=0),
         ci_low_um4=np.asarray(bootstrap_result.confidence_interval.low),
         ci_high_um4=np.asarray(bootstrap_result.confidence_interval.high),
-        modes_per_bin=modes_per_bin[retained_bin],
+        modes_per_bin=retained_modes,
         parseval_relative_error=full_2d.parseval_relative_error,
         median_psd_um4=np.median(specimen_psd, axis=0),
         estimator=estimator_name,
+    )
+
+
+def _integrated_line_psds_on_radial_grid(
+    full_2d: PSD2DResult,
+    radial_frequency_um_inv: np.ndarray,
+    *,
+    spacing_um: float | tuple[float, float],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Integrate the 2D PSD transversely and interpolate both 1D PSDs."""
+    d0, d1 = _as_spacing_tuple(spacing_um)
+    f0 = full_2d.frequency_axis0_um_inv
+    f1 = full_2d.frequency_axis1_um_inv
+    df0 = 1.0 / (f0.size * d0)
+    df1 = 1.0 / (f1.size * d1)
+    psd_2d = full_2d.specimen_psd_um4
+
+    # C1D(f0) = integral C2D(f0, f1) df1, and conversely for f1.
+    line_axis0 = np.sum(psd_2d, axis=2) * df1
+    line_axis1 = np.sum(psd_2d, axis=1) * df0
+
+    def symmetrize_and_interpolate(
+        frequency: np.ndarray,
+        line_psd: np.ndarray,
+    ) -> np.ndarray:
+        absolute_frequency = np.abs(frequency)
+        unique_frequency, inverse = np.unique(
+            absolute_frequency,
+            return_inverse=True,
+        )
+        counts = np.bincount(inverse).astype(np.float64)
+        symmetric = np.empty(
+            (line_psd.shape[0], unique_frequency.size),
+            dtype=np.float64,
+        )
+        for specimen_index, curve in enumerate(line_psd):
+            symmetric[specimen_index] = (
+                np.bincount(inverse, weights=curve) / counts
+            )
+
+        interpolated = np.empty(
+            (line_psd.shape[0], radial_frequency_um_inv.size),
+            dtype=np.float64,
+        )
+        for specimen_index, curve in enumerate(symmetric):
+            interpolated[specimen_index] = np.interp(
+                radial_frequency_um_inv,
+                unique_frequency,
+                curve,
+            )
+        return interpolated
+
+    return (
+        symmetrize_and_interpolate(f0, line_axis0),
+        symmetrize_and_interpolate(f1, line_axis1),
     )
 
 
@@ -2146,6 +2293,392 @@ def spectral_length_scales_from_radial_psd(
         )
 
     return names, values
+
+
+def _log_bin_specimen_curves(
+    frequency_um_inv: np.ndarray,
+    specimen_curves: np.ndarray,
+    modes_per_bin: np.ndarray,
+    *,
+    bins_per_decade: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rebin linear-frequency curves into equal-width log-frequency bins."""
+    frequency = np.asarray(frequency_um_inv, dtype=np.float64)
+    curves = np.asarray(specimen_curves, dtype=np.float64)
+    modes = np.asarray(modes_per_bin, dtype=np.float64)
+    if frequency.ndim != 1 or modes.shape != frequency.shape:
+        raise ValueError("frequency and modes_per_bin must be matching 1D arrays.")
+    if curves.shape[-1] != frequency.size:
+        raise ValueError("The last specimen_curves axis must match frequency.")
+    if bins_per_decade < 4:
+        raise ValueError("bins_per_decade must be at least four.")
+
+    valid_frequency = (
+        np.isfinite(frequency)
+        & (frequency > 0.0)
+        & np.isfinite(modes)
+        & (modes > 0.0)
+    )
+    frequency = frequency[valid_frequency]
+    modes = modes[valid_frequency]
+    curves = curves[..., valid_frequency]
+    order = np.argsort(frequency)
+    frequency = frequency[order]
+    modes = modes[order]
+    curves = curves[..., order]
+
+    decades = np.log10(frequency[-1] / frequency[0])
+    number_bins = max(8, int(np.ceil(decades * bins_per_decade)))
+    edges = np.geomspace(frequency[0], frequency[-1], number_bins + 1)
+    edges[-1] = np.nextafter(edges[-1], np.inf)
+    bin_index = np.searchsorted(edges, frequency, side="right") - 1
+
+    output_curves = []
+    output_frequency = []
+    output_modes = []
+    for local_bin in range(number_bins):
+        selected = bin_index == local_bin
+        if not np.any(selected):
+            continue
+        local_modes = modes[selected]
+        local_curves = curves[..., selected]
+        finite = np.isfinite(local_curves) & (local_curves > 0.0)
+        weighted_values = np.where(
+            finite,
+            local_curves * local_modes,
+            0.0,
+        )
+        effective_weight = np.sum(
+            np.where(finite, local_modes, 0.0),
+            axis=-1,
+        )
+        with np.errstate(divide="ignore", invalid="ignore"):
+            binned_curve = np.sum(weighted_values, axis=-1) / effective_weight
+        output_curves.append(binned_curve)
+        output_frequency.append(
+            np.exp(np.average(np.log(frequency[selected]), weights=local_modes))
+        )
+        output_modes.append(np.sum(local_modes))
+
+    binned = np.stack(output_curves, axis=-1)
+    retained = np.all(np.isfinite(binned), axis=tuple(range(binned.ndim - 1)))
+    if np.count_nonzero(retained) < 6:
+        raise ValueError("Too few finite logarithmic PSD bins remain.")
+    return (
+        np.asarray(output_frequency, dtype=np.float64)[retained],
+        binned[..., retained],
+        np.asarray(output_modes, dtype=np.float64)[retained],
+    )
+
+
+def _isotonic_decreasing(
+    values: np.ndarray,
+    weights: np.ndarray,
+) -> np.ndarray:
+    """Weighted pool-adjacent-violators fit constrained to be decreasing."""
+    y = np.asarray(values, dtype=np.float64)
+    w = np.asarray(weights, dtype=np.float64)
+    if y.ndim != 1 or w.shape != y.shape:
+        raise ValueError("values and weights must be matching 1D arrays.")
+
+    block_values: list[float] = []
+    block_weights: list[float] = []
+    block_lengths: list[int] = []
+    for value, weight in zip(y, w):
+        block_values.append(float(value))
+        block_weights.append(float(weight))
+        block_lengths.append(1)
+        while (
+            len(block_values) >= 2
+            and block_values[-2] < block_values[-1]
+        ):
+            merged_weight = block_weights[-2] + block_weights[-1]
+            merged_value = (
+                block_values[-2] * block_weights[-2]
+                + block_values[-1] * block_weights[-1]
+            ) / merged_weight
+            merged_length = block_lengths[-2] + block_lengths[-1]
+            block_values[-2:] = [merged_value]
+            block_weights[-2:] = [merged_weight]
+            block_lengths[-2:] = [merged_length]
+
+    return np.concatenate(
+        [
+            np.full(length, value, dtype=np.float64)
+            for value, length in zip(block_values, block_lengths)
+        ]
+    )
+
+
+def _noise_ratio_crossing_um(
+    frequency_um_inv: np.ndarray,
+    normalized_ratio: np.ndarray,
+    weights: np.ndarray,
+) -> tuple[float, np.ndarray]:
+    """Locate the 2D/1D PSD noise-floor crossing after monotone smoothing."""
+    frequency = np.asarray(frequency_um_inv, dtype=np.float64)
+    ratio = np.asarray(normalized_ratio, dtype=np.float64)
+    valid = np.isfinite(ratio) & (ratio > 0.0)
+    if np.count_nonzero(valid) < 4:
+        return np.nan, np.full_like(ratio, np.nan)
+
+    fitted_log_ratio = np.full_like(ratio, np.nan)
+    local_fit = _isotonic_decreasing(
+        np.log10(ratio[valid]),
+        np.asarray(weights, dtype=np.float64)[valid],
+    )
+    fitted_log_ratio[valid] = local_fit
+    local_frequency = frequency[valid]
+    crossing = np.flatnonzero(local_fit <= 0.0)
+    if crossing.size == 0 or crossing[0] == 0:
+        return np.nan, 10.0**fitted_log_ratio
+
+    upper_index = int(crossing[0])
+    lower_index = upper_index - 1
+    y0 = local_fit[lower_index]
+    y1 = local_fit[upper_index]
+    x0 = np.log10(local_frequency[lower_index])
+    x1 = np.log10(local_frequency[upper_index])
+    if np.isclose(y0, y1):
+        crossing_log_frequency = x1
+    else:
+        crossing_log_frequency = x0 + (0.0 - y0) * (x1 - x0) / (y1 - y0)
+    return float(1.0 / 10.0**crossing_log_frequency), 10.0**fitted_log_ratio
+
+
+def _small_wavelength_noise_cutoff(
+    evolution: MagnificationEvolutionResult,
+    times_hours: np.ndarray,
+    *,
+    use_median: bool,
+    confidence_level: float,
+    n_resamples: int,
+    bins_per_decade: int,
+    seed: int,
+) -> SmallWavelengthCutoffResult:
+    """Apply the Jacobs et al. white-noise criterion to both map axes."""
+    radial = np.stack(
+        [result.specimen_psd_um4 for result in evolution.radial_results],
+        axis=0,
+    )
+    frequency = evolution.radial_results[0].frequency_um_inv
+    modes = evolution.radial_results[0].modes_per_bin
+    ntimes, nsamples, number_raw_bins = radial.shape
+    binned_frequency, binned_radial_flat, binned_modes = (
+        _log_bin_specimen_curves(
+            frequency,
+            radial.reshape(ntimes * nsamples, number_raw_bins),
+            modes,
+            bins_per_decade=bins_per_decade,
+        )
+    )
+    binned_radial = binned_radial_flat.reshape(ntimes, nsamples, -1)
+
+    binned_lines = []
+    for line_psd in (evolution.line_psd_axis0_um3, evolution.line_psd_axis1_um3):
+        _, binned_line_flat, _ = _log_bin_specimen_curves(
+            frequency,
+            line_psd.reshape(ntimes * nsamples, number_raw_bins),
+            modes,
+            bins_per_decade=bins_per_decade,
+        )
+        binned_lines.append(binned_line_flat.reshape(ntimes, nsamples, -1))
+
+    d0, d1 = evolution.spacing_um
+    expected_ratios = (d1, d0)
+    normalized_specimen_ratios = [
+        binned_radial / np.maximum(line, np.finfo(float).tiny) / expected
+        for line, expected in zip(binned_lines, expected_ratios)
+    ]
+    estimator = np.nanmedian if use_median else np.nanmean
+    axis_cutoffs = np.full((2, ntimes), np.nan, dtype=np.float64)
+    axis_status = np.full((2, ntimes), "ambiguous", dtype="U32")
+    combined_status = np.full(ntimes, "ambiguous", dtype="U32")
+    combined_cutoff = np.full(ntimes, np.nan, dtype=np.float64)
+    bootstrap_cutoff = np.full(
+        (ntimes, n_resamples),
+        np.nan,
+        dtype=np.float64,
+    )
+
+    for time_index in range(ntimes):
+        local_axis_cutoffs = []
+        for axis_index, (line, expected) in enumerate(
+            zip(binned_lines, expected_ratios)
+        ):
+            aggregate_ratio = (
+                estimator(binned_radial[time_index], axis=0)
+                / np.maximum(
+                    estimator(line[time_index], axis=0),
+                    np.finfo(float).tiny,
+                )
+                / expected
+            )
+            cutoff, fitted_ratio = _noise_ratio_crossing_um(
+                binned_frequency,
+                aggregate_ratio,
+                binned_modes,
+            )
+            axis_cutoffs[axis_index, time_index] = cutoff
+            finite_fit = fitted_ratio[np.isfinite(fitted_ratio)]
+            if np.isfinite(cutoff):
+                axis_status[axis_index, time_index] = "crossing_detected"
+            elif finite_fit.size and finite_fit[-1] > 1.0:
+                axis_status[axis_index, time_index] = "below_measured_range"
+            elif finite_fit.size and finite_fit[0] <= 1.0:
+                axis_status[axis_index, time_index] = (
+                    "no_signal_dominated_range"
+                )
+            local_axis_cutoffs.append(cutoff)
+        finite_cutoffs = np.asarray(local_axis_cutoffs)[
+            np.isfinite(local_axis_cutoffs)
+        ]
+        if finite_cutoffs.size:
+            combined_cutoff[time_index] = float(np.max(finite_cutoffs))
+            combined_status[time_index] = "crossing_detected"
+        elif np.all(axis_status[:, time_index] == "below_measured_range"):
+            combined_status[time_index] = "below_measured_range"
+        elif np.any(
+            axis_status[:, time_index] == "no_signal_dominated_range"
+        ):
+            combined_status[time_index] = "no_signal_dominated_range"
+
+        rng = np.random.default_rng(seed + time_index)
+        completed = 0
+        while completed < n_resamples:
+            batch_size = min(250, n_resamples - completed)
+            sample_indices = rng.integers(
+                0,
+                nsamples,
+                size=(batch_size, nsamples),
+            )
+            sampled_radial = binned_radial[time_index][sample_indices]
+            aggregate_radial = estimator(sampled_radial, axis=1)
+            aggregate_lines = [
+                estimator(line[time_index][sample_indices], axis=1)
+                for line in binned_lines
+            ]
+            for bootstrap_index in range(batch_size):
+                replicate_cutoffs = []
+                for aggregate_line, expected in zip(
+                    aggregate_lines,
+                    expected_ratios,
+                ):
+                    ratio = (
+                        aggregate_radial[bootstrap_index]
+                        / np.maximum(
+                            aggregate_line[bootstrap_index],
+                            np.finfo(float).tiny,
+                        )
+                        / expected
+                    )
+                    cutoff, _ = _noise_ratio_crossing_um(
+                        binned_frequency,
+                        ratio,
+                        binned_modes,
+                    )
+                    if np.isfinite(cutoff):
+                        replicate_cutoffs.append(cutoff)
+                if replicate_cutoffs:
+                    bootstrap_cutoff[
+                        time_index,
+                        completed + bootstrap_index,
+                    ] = np.max(replicate_cutoffs)
+            completed += batch_size
+
+    alpha = 1.0 - confidence_level
+    ci_low = np.full(ntimes, np.nan, dtype=np.float64)
+    ci_high = np.full(ntimes, np.nan, dtype=np.float64)
+    detection_fraction = np.mean(np.isfinite(bootstrap_cutoff), axis=1)
+    for time_index, values in enumerate(bootstrap_cutoff):
+        finite = values[np.isfinite(values)]
+        if finite.size:
+            ci_low[time_index], ci_high[time_index] = np.quantile(
+                finite,
+                [0.5 * alpha, 1.0 - 0.5 * alpha],
+            )
+    detected = (
+        np.isfinite(combined_cutoff)
+        & (detection_fraction >= confidence_level)
+    )
+    combined_status[
+        np.isfinite(combined_cutoff) & ~detected
+    ] = "bootstrap_unstable"
+    combined_status[detected] = "accepted"
+
+    return SmallWavelengthCutoffResult(
+        times_hours=np.asarray(times_hours, dtype=np.float64),
+        wavelength_um=1.0 / binned_frequency,
+        normalized_ratio_axis0=normalized_specimen_ratios[0],
+        normalized_ratio_axis1=normalized_specimen_ratios[1],
+        cutoff_axis0_um=axis_cutoffs[0],
+        cutoff_axis1_um=axis_cutoffs[1],
+        cutoff_um=combined_cutoff,
+        ci_low_um=ci_low,
+        ci_high_um=ci_high,
+        detected=detected,
+        bootstrap_detection_fraction=detection_fraction,
+        status=combined_status,
+    )
+
+
+def _fit_low_frequency_rolloff(
+    frequency_um_inv: np.ndarray,
+    psd_um4: np.ndarray,
+    *,
+    min_segment_bins: int,
+) -> tuple[float, float, float, np.ndarray]:
+    """Fit a flat low-frequency plateau joined to a log-log scaling line."""
+    frequency = np.asarray(frequency_um_inv, dtype=np.float64)
+    psd = np.asarray(psd_um4, dtype=np.float64)
+    valid = np.isfinite(frequency) & (frequency > 0.0) & np.isfinite(psd) & (psd > 0.0)
+    x = np.log10(frequency[valid])
+    y = np.log10(psd[valid])
+    number_points = x.size
+    fitted_full = np.full_like(psd, np.nan)
+    if number_points < 2 * min_segment_bins + 1:
+        return np.nan, np.nan, np.nan, fitted_full
+
+    null_design = np.column_stack((np.ones(number_points), x - np.mean(x)))
+    null_coefficients = np.linalg.lstsq(null_design, y, rcond=None)[0]
+    null_residual = y - null_design @ null_coefficients
+    null_sse = max(float(np.sum(null_residual**2)), np.finfo(float).tiny)
+    null_bic = number_points * np.log(null_sse / number_points) + 2 * np.log(
+        number_points
+    )
+
+    best_sse = np.inf
+    best_break = np.nan
+    best_slope = np.nan
+    best_fit = None
+    for break_index in range(
+        min_segment_bins - 1,
+        number_points - min_segment_bins,
+    ):
+        breakpoint = x[break_index]
+        design = np.column_stack(
+            (np.ones(number_points), np.maximum(x - breakpoint, 0.0))
+        )
+        coefficients = np.linalg.lstsq(design, y, rcond=None)[0]
+        fitted = design @ coefficients
+        sse = max(float(np.sum((y - fitted) ** 2)), np.finfo(float).tiny)
+        if sse < best_sse:
+            best_sse = sse
+            best_break = breakpoint
+            best_slope = float(coefficients[1])
+            best_fit = fitted
+
+    broken_bic = number_points * np.log(best_sse / number_points) + 3 * np.log(
+        number_points
+    )
+    if best_fit is not None:
+        fitted_full[valid] = 10.0**best_fit
+    return (
+        float(1.0 / 10.0**best_break),
+        float(null_bic - broken_bic),
+        best_slope,
+        fitted_full,
+    )
 
 
 def plot_radial_psd_vs_wavelength(
@@ -3175,6 +3708,8 @@ def _run_magnification_evolution(
     acf_values = []
     spectral_length_values = []
     band_power_values = []
+    line_psd_axis0_values = []
+    line_psd_axis1_values = []
     roughness_names = None
     spectral_length_names = None
     acf_metric_names = (
@@ -3216,6 +3751,13 @@ def _run_magnification_evolution(
             plot_specimen_2d=plot_specimen_2d,
         )
         radial_results.append(analysis.radial)
+        line_axis0, line_axis1 = _integrated_line_psds_on_radial_grid(
+            analysis.full_2d,
+            analysis.radial.frequency_um_inv,
+            spacing_um=spacing,
+        )
+        line_psd_axis0_values.append(line_axis0)
+        line_psd_axis1_values.append(line_axis1)
 
         directional = directional_psd_from_2d(
             analysis.full_2d,
@@ -3310,6 +3852,8 @@ def _run_magnification_evolution(
     acf_array = np.stack(acf_values, axis=0)
     spectral_array = np.stack(spectral_length_values, axis=0)
     band_array = np.stack(band_power_values, axis=0)
+    line_psd_axis0_array = np.stack(line_psd_axis0_values, axis=0)
+    line_psd_axis1_array = np.stack(line_psd_axis1_values, axis=0)
     nested_sq = _nested_window_sq(
         maps,
         center_mask.excluded_masks,
@@ -3507,6 +4051,8 @@ def _run_magnification_evolution(
         mask_sensitivity_sq_um=sensitivity_sq,
         mask_sensitivity_sal_um=sensitivity_sal,
         mask_sensitivity_band_power_um2=sensitivity_band,
+        line_psd_axis0_um3=line_psd_axis0_array,
+        line_psd_axis1_um3=line_psd_axis1_array,
         **saved_summary,
     )
 
@@ -3534,7 +4080,264 @@ def _run_magnification_evolution(
         mask_sensitivity_sq_um=sensitivity_sq,
         mask_sensitivity_sal_um=sensitivity_sal,
         mask_sensitivity_band_power_um2=sensitivity_band,
+        line_psd_axis0_um3=line_psd_axis0_array,
+        line_psd_axis1_um3=line_psd_axis1_array,
         output_dir=magnitude_dir,
+    )
+
+
+def _subfield_radial_spectra(
+    evolution: MagnificationEvolutionResult,
+    cropped_maps_um: np.ndarray,
+    exclusion_masks: np.ndarray,
+    *,
+    spacing_um: float | tuple[float, float],
+    window_fractions: tuple[float, ...],
+    mask_taper_um: float,
+    min_modes_per_bin: int,
+    use_median: bool,
+) -> list[tuple[float, float, np.ndarray, np.ndarray, np.ndarray]]:
+    """Return specimen PSDs from full and translated smaller subfields."""
+    maps = np.asarray(cropped_maps_um, dtype=np.float64)
+    masks = np.asarray(exclusion_masks, dtype=bool)
+    d0, d1 = _as_spacing_tuple(spacing_um)
+    n0, n1 = maps.shape[-2:]
+    estimator = np.nanmedian if use_median else np.nanmean
+    output = []
+
+    fractions = tuple(sorted({float(value) for value in window_fractions}))
+    if not fractions or not np.isclose(fractions[-1], 1.0):
+        raise ValueError("rolloff_window_fractions must include 1.0.")
+    if any(value <= 0.0 or value > 1.0 for value in fractions):
+        raise ValueError("rolloff_window_fractions must lie in (0, 1].")
+
+    for fraction in fractions:
+        if np.isclose(fraction, 1.0):
+            frequency = evolution.radial_results[0].frequency_um_inv
+            modes = evolution.radial_results[0].modes_per_bin
+            specimen_psd = np.stack(
+                [result.specimen_psd_um4 for result in evolution.radial_results],
+                axis=0,
+            )
+            short_side = min(n0 * d0, n1 * d1)
+            output.append(
+                (fraction, short_side, frequency, modes, specimen_psd)
+            )
+            continue
+
+        size0 = max(16, int(round(fraction * n0)))
+        size1 = max(16, int(round(fraction * n1)))
+        starts0 = sorted({0, n0 - size0})
+        starts1 = sorted({0, n1 - size1})
+        time_psd = []
+        frequency = None
+        modes = None
+        for time_index in range(maps.shape[0]):
+            window_psd = []
+            for start0 in starts0:
+                for start1 in starts1:
+                    stop0 = start0 + size0
+                    stop1 = start1 + size1
+                    local_maps = maps[:, :, start0:stop0, start1:stop1]
+                    local_masks = masks[:, start0:stop0, start1:stop1]
+                    full_2d = calculate_2d_psd_at_time(
+                        local_maps,
+                        time_index,
+                        spacing_um=(d0, d1),
+                        use_median=use_median,
+                        exclusion_masks=local_masks,
+                        mask_taper_um=mask_taper_um,
+                    )
+                    local_frequency, local_psd, local_modes = (
+                        _radial_average_from_2d_psd(
+                            full_2d,
+                            spacing_um=(d0, d1),
+                            min_modes_per_bin=min_modes_per_bin,
+                        )
+                    )
+                    if frequency is None:
+                        frequency = local_frequency
+                        modes = local_modes
+                    elif not np.allclose(frequency, local_frequency):
+                        raise RuntimeError("Subfields produced inconsistent PSD grids.")
+                    window_psd.append(local_psd)
+            time_psd.append(estimator(np.stack(window_psd, axis=0), axis=0))
+
+        if frequency is None or modes is None:
+            raise RuntimeError("No subfield PSD was calculated.")
+        short_side = min(size0 * d0, size1 * d1)
+        output.append(
+            (
+                fraction,
+                short_side,
+                frequency,
+                modes,
+                np.stack(time_psd, axis=0),
+            )
+        )
+    return output
+
+
+def _large_wavelength_rolloff(
+    subfield_spectra: list[
+        tuple[float, float, np.ndarray, np.ndarray, np.ndarray]
+    ],
+    times_hours: np.ndarray,
+    *,
+    use_median: bool,
+    confidence_level: float,
+    n_resamples: int,
+    bins_per_decade: int,
+    min_segment_bins: int,
+    minimum_fit_wavelength_um: float,
+    required_delta_bic: float,
+    seed: int,
+) -> LargeWavelengthCutoffResult:
+    """Estimate and bootstrap the 10x low-frequency PSD roll-off."""
+    number_fractions = len(subfield_spectra)
+    ntimes = len(times_hours)
+    fractions = np.empty(number_fractions, dtype=np.float64)
+    short_sides = np.empty(number_fractions, dtype=np.float64)
+    cutoff = np.full((number_fractions, ntimes), np.nan, dtype=np.float64)
+    ci_low = np.full_like(cutoff, np.nan)
+    ci_high = np.full_like(cutoff, np.nan)
+    delta_bic = np.full_like(cutoff, np.nan)
+    slope = np.full_like(cutoff, np.nan)
+    detected = np.zeros_like(cutoff, dtype=bool)
+    detection_fraction = np.zeros_like(cutoff)
+    estimator = np.nanmedian if use_median else np.nanmean
+    alpha = 1.0 - confidence_level
+
+    for fraction_index, (
+        fraction,
+        short_side,
+        frequency,
+        modes,
+        specimen_psd,
+    ) in enumerate(subfield_spectra):
+        fractions[fraction_index] = fraction
+        short_sides[fraction_index] = short_side
+        ntimes_local, nsamples, number_raw_bins = specimen_psd.shape
+        if ntimes_local != ntimes:
+            raise ValueError("Subfield spectra do not match times_hours.")
+        fit_selected = frequency <= 1.0 / minimum_fit_wavelength_um
+        binned_frequency, binned_flat, _ = _log_bin_specimen_curves(
+            frequency[fit_selected],
+            specimen_psd.reshape(ntimes * nsamples, number_raw_bins)[
+                :, fit_selected
+            ],
+            modes[fit_selected],
+            bins_per_decade=bins_per_decade,
+        )
+        binned = binned_flat.reshape(ntimes, nsamples, -1)
+
+        for time_index in range(ntimes):
+            aggregate = estimator(binned[time_index], axis=0)
+            local_cutoff, local_delta, local_slope, _ = (
+                _fit_low_frequency_rolloff(
+                    binned_frequency,
+                    aggregate,
+                    min_segment_bins=min_segment_bins,
+                )
+            )
+            cutoff[fraction_index, time_index] = local_cutoff
+            delta_bic[fraction_index, time_index] = local_delta
+            slope[fraction_index, time_index] = local_slope
+            detected[fraction_index, time_index] = (
+                np.isfinite(local_cutoff)
+                and local_delta >= required_delta_bic
+                and local_slope < 0.0
+            )
+
+            rng = np.random.default_rng(
+                seed + 1000 * fraction_index + time_index
+            )
+            bootstrap_values = np.full(n_resamples, np.nan, dtype=np.float64)
+            completed = 0
+            while completed < n_resamples:
+                batch_size = min(250, n_resamples - completed)
+                sample_indices = rng.integers(
+                    0,
+                    nsamples,
+                    size=(batch_size, nsamples),
+                )
+                sampled = binned[time_index][sample_indices]
+                aggregates = estimator(sampled, axis=1)
+                for bootstrap_index, bootstrap_curve in enumerate(aggregates):
+                    value, evidence, bootstrap_slope, _ = (
+                        _fit_low_frequency_rolloff(
+                            binned_frequency,
+                            bootstrap_curve,
+                            min_segment_bins=min_segment_bins,
+                        )
+                    )
+                    if (
+                        np.isfinite(value)
+                        and evidence >= required_delta_bic
+                        and bootstrap_slope < 0.0
+                    ):
+                        bootstrap_values[completed + bootstrap_index] = value
+                completed += batch_size
+
+            finite = bootstrap_values[np.isfinite(bootstrap_values)]
+            detection_fraction[fraction_index, time_index] = (
+                finite.size / n_resamples
+            )
+            if finite.size:
+                ci_low[fraction_index, time_index], ci_high[
+                    fraction_index, time_index
+                ] = np.quantile(
+                    finite,
+                    [0.5 * alpha, 1.0 - 0.5 * alpha],
+                )
+
+    full_index = int(np.flatnonzero(np.isclose(fractions, 1.0))[0])
+    stable = np.array(
+        detected[full_index]
+        & (detection_fraction[full_index] >= confidence_level),
+        copy=True,
+    )
+    for time_index in range(ntimes):
+        if not stable[time_index]:
+            continue
+        full_interval = (
+            ci_low[full_index, time_index],
+            ci_high[full_index, time_index],
+        )
+        if not np.all(np.isfinite(full_interval)):
+            stable[time_index] = False
+            continue
+        for fraction_index in range(number_fractions):
+            if fraction_index == full_index:
+                continue
+            local_interval = (
+                ci_low[fraction_index, time_index],
+                ci_high[fraction_index, time_index],
+            )
+            intervals_overlap = (
+                detected[fraction_index, time_index]
+                and detection_fraction[fraction_index, time_index]
+                >= confidence_level
+                and np.all(np.isfinite(local_interval))
+                and max(full_interval[0], local_interval[0])
+                <= min(full_interval[1], local_interval[1])
+            )
+            if not intervals_overlap:
+                stable[time_index] = False
+                break
+
+    return LargeWavelengthCutoffResult(
+        times_hours=np.asarray(times_hours, dtype=np.float64),
+        window_fractions=fractions,
+        window_short_side_um=short_sides,
+        cutoff_um=cutoff,
+        ci_low_um=ci_low,
+        ci_high_um=ci_high,
+        delta_bic=delta_bic,
+        scaling_slope=slope,
+        detected=detected,
+        bootstrap_detection_fraction=detection_fraction,
+        full_window_stable=stable,
     )
 
 
@@ -3562,6 +4365,260 @@ def _interpolate_radial_log_psd(
                 np.log10(np.maximum(psd[order], floor)),
             )
     return output
+
+
+def _log_binned_radial_stack(
+    evolution: MagnificationEvolutionResult,
+    *,
+    bins_per_decade: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    radial = np.stack(
+        [result.specimen_psd_um4 for result in evolution.radial_results],
+        axis=0,
+    )
+    ntimes, nsamples, number_raw_bins = radial.shape
+    frequency, binned_flat, _ = _log_bin_specimen_curves(
+        evolution.radial_results[0].frequency_um_inv,
+        radial.reshape(ntimes * nsamples, number_raw_bins),
+        evolution.radial_results[0].modes_per_bin,
+        bins_per_decade=bins_per_decade,
+    )
+    binned = binned_flat.reshape(ntimes, nsamples, -1)
+    order = np.argsort(1.0 / frequency)
+    return 1.0 / frequency[order], binned[..., order]
+
+
+def _joint_paired_spectral_changes(
+    fine: MagnificationEvolutionResult,
+    coarse: MagnificationEvolutionResult,
+    *,
+    fine_valid_band_um: tuple[float, float],
+    coarse_valid_band_um: tuple[float, float],
+    use_median: bool,
+    confidence_level: float,
+    n_resamples: int,
+    bins_per_decade: int,
+    seed: int,
+) -> tuple[SpectralChangeResult, SpectralChangeResult]:
+    """Build one simultaneous band over both objectives, times, and wavelengths."""
+    fine_wavelength, fine_psd = _log_binned_radial_stack(
+        fine,
+        bins_per_decade=bins_per_decade,
+    )
+    coarse_wavelength, coarse_psd = _log_binned_radial_stack(
+        coarse,
+        bins_per_decade=bins_per_decade,
+    )
+    if fine_psd.shape[:2] != coarse_psd.shape[:2]:
+        raise ValueError("Fine and coarse PSD stacks must have matching pairs.")
+
+    floor = np.finfo(float).tiny
+    fine_change = np.log10(
+        np.maximum(fine_psd, floor) / np.maximum(fine_psd[[0]], floor)
+    )
+    coarse_change = np.log10(
+        np.maximum(coarse_psd, floor) / np.maximum(coarse_psd[[0]], floor)
+    )
+    estimator = np.nanmedian if use_median else np.nanmean
+    fine_estimate = estimator(fine_change, axis=1)
+    coarse_estimate = estimator(coarse_change, axis=1)
+    ntimes, nsamples = fine_change.shape[:2]
+
+    fine_valid = (
+        (fine_wavelength >= fine_valid_band_um[0])
+        & (fine_wavelength <= fine_valid_band_um[1])
+    )
+    coarse_valid = (
+        (coarse_wavelength >= coarse_valid_band_um[0])
+        & (coarse_wavelength <= coarse_valid_band_um[1])
+    )
+    if not np.any(fine_valid) or not np.any(coarse_valid):
+        raise ValueError("No log-binned PSD values fall in a morphology band.")
+
+    bootstrap_fine = np.empty(
+        (n_resamples, ntimes - 1, fine_wavelength.size),
+        dtype=np.float64,
+    )
+    bootstrap_coarse = np.empty(
+        (n_resamples, ntimes - 1, coarse_wavelength.size),
+        dtype=np.float64,
+    )
+    rng = np.random.default_rng(seed)
+    completed = 0
+    while completed < n_resamples:
+        batch_size = min(250, n_resamples - completed)
+        sample_indices = rng.integers(
+            0,
+            nsamples,
+            size=(batch_size, nsamples),
+        )
+        fine_sampled = fine_change[1:, sample_indices, :]
+        coarse_sampled = coarse_change[1:, sample_indices, :]
+        fine_batch = estimator(fine_sampled, axis=2).transpose(1, 0, 2)
+        coarse_batch = estimator(coarse_sampled, axis=2).transpose(1, 0, 2)
+        bootstrap_fine[completed : completed + batch_size] = fine_batch
+        bootstrap_coarse[completed : completed + batch_size] = coarse_batch
+        completed += batch_size
+
+    fine_se = np.std(bootstrap_fine, axis=0, ddof=1)
+    coarse_se = np.std(bootstrap_coarse, axis=0, ddof=1)
+    fine_scale = np.maximum(fine_se, np.finfo(float).eps)
+    coarse_scale = np.maximum(coarse_se, np.finfo(float).eps)
+    fine_standardized = np.abs(
+        (bootstrap_fine - fine_estimate[None, 1:, :]) / fine_scale[None, ...]
+    )[..., fine_valid]
+    coarse_standardized = np.abs(
+        (bootstrap_coarse - coarse_estimate[None, 1:, :])
+        / coarse_scale[None, ...]
+    )[..., coarse_valid]
+    maximum_statistic = np.maximum(
+        np.max(fine_standardized, axis=(1, 2)),
+        np.max(coarse_standardized, axis=(1, 2)),
+    )
+    critical_value = float(np.quantile(maximum_statistic, confidence_level))
+
+    def make_result(
+        label: str,
+        wavelength: np.ndarray,
+        specimen_change: np.ndarray,
+        estimate: np.ndarray,
+        standard_error: np.ndarray,
+        valid: np.ndarray,
+    ) -> SpectralChangeResult:
+        low = np.zeros_like(estimate)
+        high = np.zeros_like(estimate)
+        low[1:] = estimate[1:] - critical_value * standard_error
+        high[1:] = estimate[1:] + critical_value * standard_error
+        significant = np.zeros_like(estimate, dtype=bool)
+        significant[1:] = (
+            ((low[1:] > 0.0) | (high[1:] < 0.0)) & valid[None, :]
+        )
+        return SpectralChangeResult(
+            label=label,
+            wavelength_um=wavelength,
+            log10_psd_ratio=specimen_change,
+            estimate=estimate,
+            simultaneous_ci_low=low,
+            simultaneous_ci_high=high,
+            significant=significant,
+            valid_morphology_band=valid,
+        )
+
+    return (
+        make_result(
+            "50x",
+            fine_wavelength,
+            fine_change,
+            fine_estimate,
+            fine_se,
+            fine_valid,
+        ),
+        make_result(
+            "10x",
+            coarse_wavelength,
+            coarse_change,
+            coarse_estimate,
+            coarse_se,
+            coarse_valid,
+        ),
+    )
+
+
+def _stitched_power_relevance(
+    fine: MagnificationEvolutionResult,
+    coarse: MagnificationEvolutionResult,
+    *,
+    fine_valid_band_um: tuple[float, float],
+    coarse_valid_band_um: tuple[float, float],
+    fraction: float,
+    use_median: bool,
+    confidence_level: float,
+    n_resamples: int,
+    bootstrap_method: str,
+    bins_per_decade: int,
+    seed: int,
+) -> PowerRelevanceResult:
+    """Find the central height-variance interval in a stitched two-scale PSD."""
+    if not 0.0 < fraction < 1.0:
+        raise ValueError("pertinent_power_fraction must lie in (0, 1).")
+    fine_wavelength, fine_psd = _log_binned_radial_stack(
+        fine,
+        bins_per_decade=bins_per_decade,
+    )
+    coarse_wavelength, coarse_psd = _log_binned_radial_stack(
+        coarse,
+        bins_per_decade=bins_per_decade,
+    )
+    fine_selected = (
+        (fine_wavelength >= fine_valid_band_um[0])
+        & (fine_wavelength <= fine_valid_band_um[1])
+    )
+    coarse_selected = (
+        (coarse_wavelength >= coarse_valid_band_um[0])
+        & (coarse_wavelength <= coarse_valid_band_um[1])
+    )
+    wavelength = np.concatenate(
+        (fine_wavelength[fine_selected], coarse_wavelength[coarse_selected])
+    )
+    psd = np.concatenate(
+        (fine_psd[..., fine_selected], coarse_psd[..., coarse_selected]),
+        axis=-1,
+    )
+    order = np.argsort(wavelength)
+    wavelength = wavelength[order]
+    psd = psd[..., order]
+    if wavelength.size < 4:
+        raise ValueError("Too few wavelengths remain for stitched PSD power.")
+
+    log_wavelength = np.log(wavelength)
+    frequency = 1.0 / wavelength
+    contribution = 2.0 * np.pi * frequency**2 * psd
+    segment_power = (
+        0.5
+        * (contribution[..., :-1] + contribution[..., 1:])
+        * np.diff(log_wavelength)
+    )
+    cumulative = np.concatenate(
+        (
+            np.zeros((*segment_power.shape[:-1], 1), dtype=np.float64),
+            np.cumsum(segment_power, axis=-1),
+        ),
+        axis=-1,
+    )
+    total = cumulative[..., [-1]]
+    cumulative_fraction = cumulative / np.maximum(total, np.finfo(float).tiny)
+    tail = 0.5 * (1.0 - fraction)
+    specimen_bounds = np.full(
+        (*psd.shape[:2], 2),
+        np.nan,
+        dtype=np.float64,
+    )
+    for time_index in range(psd.shape[0]):
+        for specimen_index in range(psd.shape[1]):
+            local_cumulative = cumulative_fraction[time_index, specimen_index]
+            if not np.all(np.isfinite(local_cumulative)):
+                continue
+            specimen_bounds[time_index, specimen_index] = np.interp(
+                (tail, 1.0 - tail),
+                local_cumulative,
+                wavelength,
+            )
+
+    estimate, low, high = _specimen_summary_with_ci(
+        specimen_bounds,
+        use_median=use_median,
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        seed=seed,
+        bootstrap_method=bootstrap_method,
+    )
+    return PowerRelevanceResult(
+        fraction=float(fraction),
+        specimen_bounds_um=specimen_bounds,
+        estimate_bounds_um=estimate,
+        ci_low_bounds_um=low,
+        ci_high_bounds_um=high,
+    )
 
 
 def _cross_magnification_analysis(
@@ -3709,6 +4766,630 @@ def _cross_magnification_analysis(
     return log_ratio
 
 
+def _spectral_change_intervals(
+    result: SpectralChangeResult,
+    times_hours: np.ndarray,
+) -> list[tuple[str, float, float, float, str]]:
+    intervals = []
+    wavelength = result.wavelength_um
+    for time_index in range(1, len(times_hours)):
+        direction = np.sign(result.estimate[time_index]).astype(np.int8)
+        active = result.significant[time_index]
+        start = None
+        active_direction = 0
+        for index in range(wavelength.size + 1):
+            current_active = index < wavelength.size and active[index]
+            current_direction = direction[index] if current_active else 0
+            begins_new = (
+                current_active
+                and (start is None or current_direction != active_direction)
+            )
+            if start is not None and (
+                not current_active or current_direction != active_direction
+            ):
+                stop = index - 1
+                intervals.append(
+                    (
+                        result.label,
+                        float(times_hours[time_index]),
+                        float(wavelength[start]),
+                        float(wavelength[stop]),
+                        "increase" if active_direction > 0 else "decrease",
+                    )
+                )
+                start = None
+            if begins_new:
+                start = index
+                active_direction = int(current_direction)
+    return intervals
+
+
+def _save_wavelength_selection_results(
+    selection: WavelengthSelectionResult,
+    *,
+    fine: MagnificationEvolutionResult,
+    coarse: MagnificationEvolutionResult,
+    confidence_level: float,
+    required_delta_bic: float,
+    use_median: bool,
+) -> None:
+    output_dir = selection.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+    small = selection.small
+    large = selection.large
+    full_index = int(
+        np.flatnonzero(np.isclose(large.window_fractions, 1.0))[0]
+    )
+
+    np.savez_compressed(
+        output_dir / "wavelength_selection_results.npz",
+        times_hours=small.times_hours,
+        small_wavelength_um=small.wavelength_um,
+        small_normalized_ratio_axis0=small.normalized_ratio_axis0,
+        small_normalized_ratio_axis1=small.normalized_ratio_axis1,
+        small_cutoff_axis0_um=small.cutoff_axis0_um,
+        small_cutoff_axis1_um=small.cutoff_axis1_um,
+        small_cutoff_um=small.cutoff_um,
+        small_cutoff_ci_low_um=small.ci_low_um,
+        small_cutoff_ci_high_um=small.ci_high_um,
+        small_cutoff_detected=small.detected,
+        small_bootstrap_detection_fraction=(
+            small.bootstrap_detection_fraction
+        ),
+        small_status=small.status,
+        large_window_fractions=large.window_fractions,
+        large_window_short_side_um=large.window_short_side_um,
+        large_cutoff_um=large.cutoff_um,
+        large_cutoff_ci_low_um=large.ci_low_um,
+        large_cutoff_ci_high_um=large.ci_high_um,
+        large_delta_bic=large.delta_bic,
+        large_scaling_slope=large.scaling_slope,
+        large_cutoff_detected=large.detected,
+        large_bootstrap_detection_fraction=(
+            large.bootstrap_detection_fraction
+        ),
+        large_full_window_stable=large.full_window_stable,
+        fine_change_wavelength_um=selection.fine_change.wavelength_um,
+        fine_specimen_log10_psd_ratio=(
+            selection.fine_change.log10_psd_ratio
+        ),
+        fine_change_estimate=selection.fine_change.estimate,
+        fine_change_simultaneous_ci_low=(
+            selection.fine_change.simultaneous_ci_low
+        ),
+        fine_change_simultaneous_ci_high=(
+            selection.fine_change.simultaneous_ci_high
+        ),
+        fine_change_significant=selection.fine_change.significant,
+        fine_change_valid_band=(
+            selection.fine_change.valid_morphology_band
+        ),
+        coarse_change_wavelength_um=selection.coarse_change.wavelength_um,
+        coarse_specimen_log10_psd_ratio=(
+            selection.coarse_change.log10_psd_ratio
+        ),
+        coarse_change_estimate=selection.coarse_change.estimate,
+        coarse_change_simultaneous_ci_low=(
+            selection.coarse_change.simultaneous_ci_low
+        ),
+        coarse_change_simultaneous_ci_high=(
+            selection.coarse_change.simultaneous_ci_high
+        ),
+        coarse_change_significant=selection.coarse_change.significant,
+        coarse_change_valid_band=(
+            selection.coarse_change.valid_morphology_band
+        ),
+        power_fraction=np.asarray(selection.power.fraction),
+        power_specimen_bounds_um=selection.power.specimen_bounds_um,
+        power_estimate_bounds_um=selection.power.estimate_bounds_um,
+        power_ci_low_bounds_um=selection.power.ci_low_bounds_um,
+        power_ci_high_bounds_um=selection.power.ci_high_bounds_um,
+        morphology_lambda_min_um=np.asarray(
+            selection.morphology_lambda_min_um
+        ),
+        morphology_lambda_max_um=np.asarray(
+            selection.morphology_lambda_max_um
+        ),
+        power_lambda_min_um=np.asarray(selection.power_lambda_min_um),
+        power_lambda_max_um=np.asarray(selection.power_lambda_max_um),
+        evolution_lambda_min_um=np.asarray(selection.evolution_lambda_min_um),
+        evolution_lambda_max_um=np.asarray(selection.evolution_lambda_max_um),
+    )
+
+    rows = [
+        (
+            "time_hours,lambda_min_50x_um,lambda_min_ci_low_um,"
+            "lambda_min_ci_high_um,lambda_min_detected,"
+            "lambda_min_bootstrap_support,lambda_min_status,lambda_max_10x_um,"
+            "lambda_max_ci_low_um,lambda_max_ci_high_um,"
+            "lambda_max_delta_bic,lambda_max_detected,"
+            "lambda_max_window_stable"
+        )
+    ]
+    for time_index, time_hours in enumerate(small.times_hours):
+        rows.append(
+            ",".join(
+                [
+                    f"{time_hours:.12g}",
+                    f"{small.cutoff_um[time_index]:.12g}",
+                    f"{small.ci_low_um[time_index]:.12g}",
+                    f"{small.ci_high_um[time_index]:.12g}",
+                    str(bool(small.detected[time_index])).lower(),
+                    (
+                        f"{small.bootstrap_detection_fraction[time_index]:.12g}"
+                    ),
+                    str(small.status[time_index]),
+                    f"{large.cutoff_um[full_index, time_index]:.12g}",
+                    f"{large.ci_low_um[full_index, time_index]:.12g}",
+                    f"{large.ci_high_um[full_index, time_index]:.12g}",
+                    f"{large.delta_bic[full_index, time_index]:.12g}",
+                    str(bool(large.detected[full_index, time_index])).lower(),
+                    str(bool(large.full_window_stable[time_index])).lower(),
+                ]
+            )
+        )
+    (output_dir / "wavelength_cutoffs_by_time.csv").write_text(
+        "\n".join(rows) + "\n",
+        encoding="utf-8",
+    )
+
+    power_rows = [
+        (
+            "time_hours,power_fraction,lambda_low_um,lambda_low_ci_low_um,"
+            "lambda_low_ci_high_um,lambda_high_um,lambda_high_ci_low_um,"
+            "lambda_high_ci_high_um"
+        )
+    ]
+    for time_index, time_hours in enumerate(small.times_hours):
+        power_rows.append(
+            ",".join(
+                [
+                    f"{time_hours:.12g}",
+                    f"{selection.power.fraction:.12g}",
+                    f"{selection.power.estimate_bounds_um[time_index, 0]:.12g}",
+                    f"{selection.power.ci_low_bounds_um[time_index, 0]:.12g}",
+                    f"{selection.power.ci_high_bounds_um[time_index, 0]:.12g}",
+                    f"{selection.power.estimate_bounds_um[time_index, 1]:.12g}",
+                    f"{selection.power.ci_low_bounds_um[time_index, 1]:.12g}",
+                    f"{selection.power.ci_high_bounds_um[time_index, 1]:.12g}",
+                ]
+            )
+        )
+    (output_dir / "power_relevant_wavelengths_by_time.csv").write_text(
+        "\n".join(power_rows) + "\n",
+        encoding="utf-8",
+    )
+
+    intervals = _spectral_change_intervals(
+        selection.fine_change,
+        small.times_hours,
+    ) + _spectral_change_intervals(
+        selection.coarse_change,
+        small.times_hours,
+    )
+    interval_rows = [
+        "objective,time_hours,wavelength_start_um,wavelength_stop_um,direction"
+    ]
+    interval_rows.extend(
+        f"{label},{time:.12g},{start:.12g},{stop:.12g},{direction}"
+        for label, time, start, stop, direction in intervals
+    )
+    (output_dir / "evolution_relevant_wavelength_intervals.csv").write_text(
+        "\n".join(interval_rows) + "\n",
+        encoding="utf-8",
+    )
+
+    estimator = np.nanmedian if use_median else np.nanmean
+    order = np.argsort(small.wavelength_um)
+    fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.6), sharey=True)
+    for axis_index, (ax, ratios, axis_name) in enumerate(
+        (
+            (axes[0], small.normalized_ratio_axis0, "axis 0 line PSD"),
+            (axes[1], small.normalized_ratio_axis1, "axis 1 line PSD"),
+        )
+    ):
+        for time_index, time_hours in enumerate(small.times_hours):
+            ax.plot(
+                small.wavelength_um[order],
+                estimator(ratios[time_index], axis=0)[order],
+                label=f"{time_hours:g} h",
+            )
+            cutoff_value = (
+                small.cutoff_axis0_um[time_index]
+                if axis_index == 0
+                else small.cutoff_axis1_um[time_index]
+            )
+            if np.isfinite(cutoff_value):
+                ax.axvline(cutoff_value, color="0.5", linewidth=0.5, alpha=0.5)
+        ax.axhline(1.0, color="black", linestyle="--", linewidth=1.0)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel("Wavelength (um)")
+        ax.set_title(axis_name)
+        ax.grid(True, which="both", alpha=0.2)
+    axes[0].set_ylabel("(C2D / C1D) / transverse pixel spacing")
+    axes[1].legend(fontsize="small")
+    fig.suptitle("50x data-derived small-wavelength noise cutoff")
+    fig.tight_layout()
+    fig.savefig(output_dir / "50x_small_wavelength_cutoff.png", dpi=250)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(7.0, 4.8))
+    for fraction_index, fraction in enumerate(large.window_fractions):
+        values = large.cutoff_um[fraction_index]
+        low = large.ci_low_um[fraction_index]
+        high = large.ci_high_um[fraction_index]
+        ax.plot(
+            large.times_hours,
+            values,
+            marker="o",
+            label=(
+                f"{fraction:g} field "
+                f"({large.window_short_side_um[fraction_index]:.0f} um)"
+            ),
+        )
+        ax.fill_between(large.times_hours, low, high, alpha=0.15)
+    ax.set_xlabel("Hold time (h)")
+    ax.set_ylabel("Low-frequency roll-off wavelength (um)")
+    ax.set_yscale("log")
+    ax.grid(True, which="both", alpha=0.2)
+    ax.legend()
+    ax.set_title("10x roll-off and subfield stability")
+    fig.tight_layout()
+    fig.savefig(output_dir / "10x_large_wavelength_rolloff.png", dpi=250)
+    plt.close(fig)
+
+    fig, ax = plt.subplots(figsize=(7.0, 4.8))
+    power = selection.power
+    ax.plot(
+        small.times_hours,
+        power.estimate_bounds_um[:, 0],
+        marker="o",
+        label="lower bound",
+    )
+    ax.fill_between(
+        small.times_hours,
+        power.ci_low_bounds_um[:, 0],
+        power.ci_high_bounds_um[:, 0],
+        alpha=0.18,
+    )
+    ax.plot(
+        small.times_hours,
+        power.estimate_bounds_um[:, 1],
+        marker="o",
+        label="upper bound",
+    )
+    ax.fill_between(
+        small.times_hours,
+        power.ci_low_bounds_um[:, 1],
+        power.ci_high_bounds_um[:, 1],
+        alpha=0.18,
+    )
+    ax.set_yscale("log")
+    ax.set_xlabel("Hold time (h)")
+    ax.set_ylabel("Wavelength (um)")
+    ax.set_title(
+        f"Central {100 * power.fraction:g}% of measured height variance"
+    )
+    ax.grid(True, which="both", alpha=0.2)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_dir / "power_relevant_wavelength_interval.png", dpi=250)
+    plt.close(fig)
+
+    for change in (selection.fine_change, selection.coarse_change):
+        valid_estimate = np.where(
+            change.valid_morphology_band[None, :],
+            change.estimate,
+            np.nan,
+        )
+        limit = float(np.nanmax(np.abs(valid_estimate)))
+        limit = max(limit, np.finfo(float).eps)
+        fig, ax = plt.subplots(figsize=(7.2, 4.8))
+        image = ax.pcolormesh(
+            change.wavelength_um,
+            small.times_hours,
+            valid_estimate,
+            shading="auto",
+            cmap="coolwarm",
+            vmin=-limit,
+            vmax=limit,
+        )
+        if np.any(change.significant) and not np.all(change.significant):
+            ax.contour(
+                change.wavelength_um,
+                small.times_hours,
+                change.significant.astype(float),
+                levels=[0.5],
+                colors="black",
+                linewidths=0.8,
+            )
+        ax.set_xscale("log")
+        ax.set_xlabel("Wavelength (um)")
+        ax.set_ylabel("Hold time (h)")
+        ax.set_title(
+            f"{change.label} paired PSD change; black = simultaneous significance"
+        )
+        fig.colorbar(image, ax=ax, label="log10[PSD(t) / PSD(0)]")
+        fig.tight_layout()
+        fig.savefig(
+            output_dir / f"{change.label}_paired_spectral_change.png",
+            dpi=250,
+        )
+        plt.close(fig)
+
+    def formatted(value: float) -> str:
+        return "unresolved" if not np.isfinite(value) else f"{value:.6g} um"
+
+    report_lines = [
+        "# Data-derived wavelength selection",
+        "",
+        "## Results used for simulation design",
+        "",
+        (
+            "- Conservative morphology lambda_min: "
+            f"{formatted(selection.morphology_lambda_min_um)}"
+        ),
+        (
+            "- Conservative morphology lambda_max: "
+            f"{formatted(selection.morphology_lambda_max_um)}"
+        ),
+        (
+            f"- Campaign interval containing the central "
+            f"{100 * selection.power.fraction:g}% of measured height variance: "
+            f"{formatted(selection.power_lambda_min_um)} to "
+            f"{formatted(selection.power_lambda_max_um)}"
+        ),
+        (
+            "- Smallest wavelength with a statistically supported PSD change: "
+            f"{formatted(selection.evolution_lambda_min_um)}"
+        ),
+        (
+            "- Largest wavelength with a statistically supported PSD change: "
+            f"{formatted(selection.evolution_lambda_max_um)}"
+        ),
+        "",
+        "These are not the 50x/10x overlap endpoints. The overlap is used only "
+        "as the objective handoff and consistency check.",
+        "",
+        "## Exact decision rules",
+        "",
+        (
+            "1. lambda_min is obtained from the 50x crossing where C2D/C1D "
+            "equals the transverse pixel spacing, evaluated independently along "
+            "both axes. The larger axis cutoff is retained. The value above is "
+            f"the largest upper {100 * confidence_level:g}% specimen-bootstrap "
+            "limit across time. A crossing is accepted only when at least the "
+            f"same {100 * confidence_level:g}% fraction of bootstrap resamples "
+            "also yields a crossing."
+        ),
+        (
+            "2. lambda_max is the 10x breakpoint of a constant low-frequency PSD "
+            "plateau joined continuously to a log-log scaling line. The roll-off "
+            "fit excludes wavelengths below the independent 10x sampling "
+            "guardrail. The "
+            f"model must improve BIC by at least {required_delta_bic:g}, have a "
+            "negative scaling slope, and have overlapping bootstrap intervals in "
+            "every requested subfield size; every fit must also recur in at least "
+            f"{100 * confidence_level:g}% of bootstrap resamples. If any time "
+            "fails, the campaign-wide "
+            "lambda_max is reported as unresolved."
+        ),
+        (
+            "3. Evolution-relevant intervals use paired specimen curves "
+            "log10[PSD(t)/PSD(0)]. One specimen-resampling bootstrap constructs a "
+            f"simultaneous {100 * confidence_level:g}% band over both objectives, "
+            "all nonzero times, and all tested wavelengths. A wavelength is "
+            "called changed only where that simultaneous band excludes zero."
+        ),
+        (
+            f"4. Power relevance is the central "
+            f"{100 * selection.power.fraction:g}% of Sq-squared obtained by "
+            "integrating 2*pi*f^2*Ciso over log wavelength. The 50x spectrum "
+            "supplies the short side and the 10x spectrum the long side; they "
+            "are joined inside the overlap without amplitude rescaling."
+        ),
+        "",
+        "## Censoring and interpretation",
+        "",
+        (
+            f"- Shortest 50x radial wavelength actually tested: "
+            f"{np.min(small.wavelength_um):.6g} um. If lambda_min is unresolved, "
+            "consult `lambda_min_status` in the cutoff table. "
+            "`below_measured_range` means noise dominance was not reached; "
+            "`no_signal_dominated_range` means the opposite; and "
+            "`bootstrap_unstable` means the apparent crossing was not reproducible."
+        ),
+        (
+            f"- Longest 10x radial wavelength actually tested: "
+            f"{np.max(coarse.radial_results[0].wavelength_um):.6g} um. If "
+            "lambda_max is unresolved, the data do not establish a finite upper "
+            "correlation wavelength."
+        ),
+        "- Sal remains an ISO-style correlation *distance* at ACF = 0.2; it is "
+        "reported elsewhere and is not silently converted into a wavelength.",
+        "",
+        "## Method sources",
+        "",
+        "- Jacobs, Junge, and Pastewka (2017), Quantitative characterization of "
+        "surface topography using spectral analysis: "
+        "https://doi.org/10.1088/2051-672X/aa51f8",
+        "- ISO 25178-2:2021 areal surface-texture parameter definitions: "
+        "https://www.iso.org/standard/74591.html",
+        "- Singh, Paliwal, and Kasamias (2024), representative-area convergence: "
+        "https://doi.org/10.1038/s41598-024-52329-4",
+    ]
+    (output_dir / "wavelength_selection_report.md").write_text(
+        "\n".join(report_lines) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _run_wavelength_selection(
+    fine: MagnificationEvolutionResult,
+    coarse: MagnificationEvolutionResult,
+    height_maps_10x: np.ndarray,
+    spacing_10x: float | tuple[float, float],
+    times_hours: np.ndarray,
+    *,
+    crop_slices: tuple[slice, slice],
+    center_mask_diagonal_um: float,
+    mask_taper_um: float,
+    overlap_wavelength_um: tuple[float, float],
+    output_dir: Path,
+    use_median: bool,
+    confidence_level: float,
+    n_resamples: int,
+    bootstrap_method: str,
+    pertinent_power_fraction: float,
+    bins_per_decade: int,
+    min_segment_bins: int,
+    required_delta_bic: float,
+    rolloff_window_fractions: tuple[float, ...],
+    min_modes_per_bin: int,
+    seed: int,
+) -> WavelengthSelectionResult:
+    selection_dir = output_dir / "wavelength_selection"
+    small = _small_wavelength_noise_cutoff(
+        fine,
+        times_hours,
+        use_median=use_median,
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        bins_per_decade=bins_per_decade,
+        seed=seed,
+    )
+
+    coarse_maps, coarse_mask = _prepare_uncropped_height_maps(
+        height_maps_10x,
+        spacing_um=spacing_10x,
+        crop_slices=crop_slices,
+        center_mask_diagonal_um=center_mask_diagonal_um,
+    )
+    subfield_spectra = _subfield_radial_spectra(
+        coarse,
+        coarse_maps,
+        coarse_mask.excluded_masks,
+        spacing_um=spacing_10x,
+        window_fractions=rolloff_window_fractions,
+        mask_taper_um=mask_taper_um,
+        min_modes_per_bin=min_modes_per_bin,
+        use_median=use_median,
+    )
+    large = _large_wavelength_rolloff(
+        subfield_spectra,
+        times_hours,
+        use_median=use_median,
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        bins_per_decade=bins_per_decade,
+        min_segment_bins=min_segment_bins,
+        minimum_fit_wavelength_um=coarse.wavelength_limits_um[0],
+        required_delta_bic=required_delta_bic,
+        seed=seed + 100_000,
+    )
+
+    supported_small = small.detected & np.isfinite(small.ci_high_um)
+    morphology_min = (
+        float(np.max(small.ci_high_um[supported_small]))
+        if np.any(supported_small)
+        else np.nan
+    )
+    full_index = int(
+        np.flatnonzero(np.isclose(large.window_fractions, 1.0))[0]
+    )
+    all_large_supported = np.all(large.full_window_stable) and np.all(
+        np.isfinite(large.ci_high_um[full_index])
+    )
+    morphology_max = (
+        float(np.max(large.ci_high_um[full_index]))
+        if all_large_supported
+        else np.nan
+    )
+
+    handoff = float(np.sqrt(np.prod(overlap_wavelength_um)))
+    fine_lower = (
+        morphology_min
+        if np.isfinite(morphology_min)
+        else float(np.min(fine.radial_results[0].wavelength_um))
+    )
+    coarse_upper = (
+        morphology_max
+        if np.isfinite(morphology_max)
+        else float(np.max(coarse.radial_results[0].wavelength_um))
+    )
+    fine_change, coarse_change = _joint_paired_spectral_changes(
+        fine,
+        coarse,
+        fine_valid_band_um=(fine_lower, handoff),
+        coarse_valid_band_um=(handoff, coarse_upper),
+        use_median=use_median,
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        bins_per_decade=bins_per_decade,
+        seed=seed + 200_000,
+    )
+    power = _stitched_power_relevance(
+        fine,
+        coarse,
+        fine_valid_band_um=(fine_lower, handoff),
+        coarse_valid_band_um=(handoff, coarse_upper),
+        fraction=pertinent_power_fraction,
+        use_median=use_median,
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        bootstrap_method=bootstrap_method,
+        bins_per_decade=bins_per_decade,
+        seed=seed + 300_000,
+    )
+    finite_power_low = np.where(
+        np.isfinite(power.ci_low_bounds_um[:, 0]),
+        power.ci_low_bounds_um[:, 0],
+        power.estimate_bounds_um[:, 0],
+    )
+    finite_power_high = np.where(
+        np.isfinite(power.ci_high_bounds_um[:, 1]),
+        power.ci_high_bounds_um[:, 1],
+        power.estimate_bounds_um[:, 1],
+    )
+    power_min = float(np.nanmin(finite_power_low))
+    power_max = float(np.nanmax(finite_power_high))
+    relevant_wavelengths = []
+    for change in (fine_change, coarse_change):
+        relevant = np.any(change.significant, axis=0)
+        relevant_wavelengths.extend(change.wavelength_um[relevant].tolist())
+    evolution_min = (
+        float(np.min(relevant_wavelengths)) if relevant_wavelengths else np.nan
+    )
+    evolution_max = (
+        float(np.max(relevant_wavelengths)) if relevant_wavelengths else np.nan
+    )
+
+    selection = WavelengthSelectionResult(
+        small=small,
+        large=large,
+        fine_change=fine_change,
+        coarse_change=coarse_change,
+        power=power,
+        morphology_lambda_min_um=morphology_min,
+        morphology_lambda_max_um=morphology_max,
+        power_lambda_min_um=power_min,
+        power_lambda_max_um=power_max,
+        evolution_lambda_min_um=evolution_min,
+        evolution_lambda_max_um=evolution_max,
+        output_dir=selection_dir,
+    )
+    _save_wavelength_selection_results(
+        selection,
+        fine=fine,
+        coarse=coarse,
+        confidence_level=confidence_level,
+        required_delta_bic=required_delta_bic,
+        use_median=use_median,
+    )
+    return selection
+
+
 def run_complete_analysis(
     height_maps_50x: np.ndarray,
     spacing_50x: float | tuple[float, float],
@@ -3733,6 +5414,12 @@ def run_complete_analysis(
     points_per_shortest_wavelength: float = 5.5,
     cycles_per_longest_wavelength: float = 5.0,
     nested_window_fractions: tuple[float, ...] = (0.50, 0.75, 1.00),
+    wavelength_n_resamples: int = 2_000,
+    wavelength_log_bins_per_decade: int = 12,
+    pertinent_power_fraction: float = 0.98,
+    rolloff_min_segment_bins: int = 4,
+    rolloff_required_delta_bic: float = 10.0,
+    rolloff_window_fractions: tuple[float, ...] = (0.50, 0.75, 1.00),
     mask_sensitivity_diagonals_um: tuple[float | None, ...] = (
         None,
         40.0,
@@ -3752,8 +5439,10 @@ def run_complete_analysis(
     specimen-bootstrap intervals; integrated wavelength-band power; spectral
     peak and cumulative-power length scales; 2D ACF with Sal and Str; common
     areal amplitude/distribution/slope parameters; paired changes from t=0;
-    nested-window convergence; center-mask sensitivity; and quantitative
-    comparison of the defensible 50x/10x overlap band. Integer phase-correlation
+    nested-window convergence; center-mask sensitivity; a 50x data-derived
+    small-wavelength noise cutoff; a 10x PSD roll-off with translated-subfield
+    validation; simultaneous inference for wavelength-specific temporal PSD
+    changes; and a quantitative 50x/10x overlap check. Integer phase-correlation
     shifts to t=0 are saved as a same-site diagnostic but are not applied to
     PSD/ACF maps, avoiding interpolation-induced short-wavelength attenuation.
 
@@ -3779,8 +5468,12 @@ def run_complete_analysis(
     times = np.asarray(times_hours, dtype=np.float64)
     if times.ndim != 1 or times.size != maps_50x.shape[0]:
         raise ValueError("times_hours must have one value per time index.")
+    if times.size < 2:
+        raise ValueError("At least two times are required for evolution analysis.")
     if not np.all(np.isfinite(times)) or np.any(np.diff(times) <= 0.0):
         raise ValueError("times_hours must be finite and strictly increasing.")
+    if wavelength_n_resamples < 100:
+        raise ValueError("wavelength_n_resamples must be at least 100.")
 
     spacing_fine = _as_spacing_tuple(spacing_50x)
     spacing_coarse = _as_spacing_tuple(spacing_10x)
@@ -3811,7 +5504,7 @@ def run_complete_analysis(
         min(fine_limits[1], coarse_limits[1]),
     )
     if overlap[1] <= overlap[0]:
-        raise ValueError("The defensible 50x and 10x wavelength bands do not overlap.")
+        raise ValueError("The 50x and 10x acquisition guardrails do not overlap.")
 
     fine_band_names = []
     fine_band_bounds = []
@@ -3830,7 +5523,7 @@ def run_complete_analysis(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     print(
-        "Defensible wavelength bands (um):",
+        "Acquisition guardrails for plotting/integration (um):",
         {"50x": fine_limits, "10x": coarse_limits, "overlap": overlap},
     )
     fine = _run_magnification_evolution(
@@ -3895,6 +5588,56 @@ def run_complete_analysis(
         bootstrap_method=bootstrap_method,
         seed=seed + 20_000,
     )
+    wavelength_selection = _run_wavelength_selection(
+        fine,
+        coarse,
+        maps_10x,
+        spacing_coarse,
+        times,
+        crop_slices=crop_slices,
+        center_mask_diagonal_um=center_mask_diagonal_um,
+        mask_taper_um=mask_taper_um,
+        overlap_wavelength_um=overlap,
+        output_dir=output_path,
+        use_median=use_median,
+        confidence_level=confidence_level,
+        n_resamples=wavelength_n_resamples,
+        bootstrap_method=bootstrap_method,
+        pertinent_power_fraction=pertinent_power_fraction,
+        bins_per_decade=wavelength_log_bins_per_decade,
+        min_segment_bins=rolloff_min_segment_bins,
+        required_delta_bic=rolloff_required_delta_bic,
+        rolloff_window_fractions=rolloff_window_fractions,
+        min_modes_per_bin=min_modes_per_bin,
+        seed=seed + 30_000,
+    )
+    print(
+        "Data-derived wavelength results (um):",
+        {
+            "morphology_lambda_min": (
+                wavelength_selection.morphology_lambda_min_um
+            ),
+            "morphology_lambda_max": (
+                wavelength_selection.morphology_lambda_max_um
+            ),
+            "power_lambda_min": wavelength_selection.power_lambda_min_um,
+            "power_lambda_max": wavelength_selection.power_lambda_max_um,
+            "evolution_lambda_min": (
+                wavelength_selection.evolution_lambda_min_um
+            ),
+            "evolution_lambda_max": (
+                wavelength_selection.evolution_lambda_max_um
+            ),
+        },
+    )
+    print(
+        "Wavelength report:",
+        (wavelength_selection.output_dir / "wavelength_selection_report.md").resolve(),
+    )
+    print(
+        "Cutoff table:",
+        (wavelength_selection.output_dir / "wavelength_cutoffs_by_time.csv").resolve(),
+    )
 
     np.savez_compressed(
         output_path / "complete_analysis_manifest.npz",
@@ -3906,6 +5649,24 @@ def run_complete_analysis(
         wavelength_limits_50x_um=np.asarray(fine_limits),
         wavelength_limits_10x_um=np.asarray(coarse_limits),
         overlap_wavelength_um=np.asarray(overlap),
+        morphology_lambda_min_um=np.asarray(
+            wavelength_selection.morphology_lambda_min_um
+        ),
+        morphology_lambda_max_um=np.asarray(
+            wavelength_selection.morphology_lambda_max_um
+        ),
+        power_lambda_min_um=np.asarray(
+            wavelength_selection.power_lambda_min_um
+        ),
+        power_lambda_max_um=np.asarray(
+            wavelength_selection.power_lambda_max_um
+        ),
+        evolution_lambda_min_um=np.asarray(
+            wavelength_selection.evolution_lambda_min_um
+        ),
+        evolution_lambda_max_um=np.asarray(
+            wavelength_selection.evolution_lambda_max_um
+        ),
         center_mask_diagonal_um=np.asarray(center_mask_diagonal_um),
         mask_taper_um=np.asarray(mask_taper_um),
         use_median=np.asarray(use_median),
@@ -3920,6 +5681,7 @@ def run_complete_analysis(
         coarse=coarse,
         overlap_wavelength_um=overlap,
         overlap_log10_psd_ratio=overlap_log_ratio,
+        wavelength_selection=wavelength_selection,
         output_dir=output_path,
     )
 
