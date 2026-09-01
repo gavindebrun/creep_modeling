@@ -144,6 +144,35 @@ EXP_HEIGHTS_CACHE = CACHE_DIR / "exp_heights.npz"
 SIM_HEIGHTS_CACHE = CACHE_DIR / "sim_heights.npz"
 CACHE_MANIFEST = CACHE_DIR / "publication_cache_manifest.json"
 
+RC_PARAMS = {
+    "font.family": "serif",
+    "font.size": 14.0,
+    "axes.labelsize": 12.0,
+    "axes.titlesize": 12.0,
+    "legend.fontsize": 12.0,
+    "xtick.labelsize": 12.0,
+    "ytick.labelsize": 12.0,
+    "axes.linewidth": 0.8,
+    "xtick.direction": "in",
+    "ytick.direction": "in",
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.minor.width": 0.6,
+    "ytick.minor.width": 0.6,
+    "xtick.major.size": 3.5,
+    "ytick.major.size": 3.5,
+    "xtick.minor.size": 2.0,
+    "ytick.minor.size": 2.0,
+    "mathtext.fontset": "dejavuserif",
+    "savefig.bbox": "tight",
+    "savefig.pad_inches": 0.02,
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    "svg.fonttype": "none",
+    "axes.grid": True,
+    "grid.alpha": 0.25,
+}
+
 
 def load_color(load_mpa: int | float) -> str:
     return LOAD_COLORS[int(load_mpa)]
