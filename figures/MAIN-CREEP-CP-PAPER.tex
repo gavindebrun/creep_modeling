@@ -1,0 +1,1528 @@
+%% 
+%% Copyright 2019-2020 Elsevier Ltd
+%% 
+%% This file is part of the 'CAS Bundle'.
+%% --------------------------------------
+%% 
+%% It may be distributed under the conditions of the LaTeX Project Public
+%% License, either version 1.2 of this license or (at your option) any
+%% later version.  The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.2 or later is part of all distributions of LaTeX
+%% version 1999/12/01 or later.
+%% 
+%% The list of all files belonging to the 'CAS Bundle' is
+%% given in the file `manifest.txt'.
+%% 
+%% Template article for cas-sc documentclass for 
+%% double column output.
+
+%\documentclass[a4paper,fleqn,longmktitle]{cas-sc}
+\documentclass[final,12pt]{cas-sc}
+
+\usepackage[numbers]{natbib}
+%\usepackage[authoryear]{natbib}
+%\usepackage[authoryear,longnamesfirst]{natbib}
+\usepackage[normalem]{ulem}
+\usepackage[section]{placeins}
+\usepackage{float}
+
+\hypersetup{
+  hypertexnames=false,
+  pdftitle={Surface roughness build-up as an indicator of room-temperature creep},
+  pdfauthor={Gavin DeBrun, Nathan K. Brown, Samuel Inman, Ricardo Lebensohn, Brad L. Boyce, R\'emi Dingreville},
+  pdfsubject={Research article},
+  pdfkeywords={room-temperature creep, surface roughness, crystal plasticity, optical profilometry, power spectral density}
+}
+
+\setcounter{topnumber}{5}
+\setcounter{bottomnumber}{4}
+\setcounter{totalnumber}{8}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.75}
+
+\ExplSyntaxOn
+\RenewDocumentEnvironment { PrelimsAbstract } { O{} }
+  {\parindent=0pt
+   { \fontsize{14pt}{16pt}\selectfont #1 }\par
+   \vskip12pt
+   { \fontsize{12pt}{14pt}\bfseries\selectfont\casprelimstitle } \par
+   \vskip6pt
+   \ifnum\theblind>0\relax
+     \vspace*{\the\baselineskip}
+   \else
+     \seq_use:Nn \g_stm_prelimsau_seq { ,\allowbreak\c_space_token }
+   \fi
+   \vskip12pt
+   \par}
+  {}
+\ExplSyntaxOff
+
+%%%Author definitions
+\def\tsc#1{\csdef{#1}{\textsc{\lowercase{#1}}\xspace}}
+\tsc{WGM}
+\tsc{QE}
+\tsc{EP}
+\tsc{PMS}
+\tsc{BEC}
+\tsc{DE}
+%%%
+
+
+\begin{document}
+\let\WriteBookmarks\relax
+\def\floatpagepagefraction{1}
+\def\textpagefraction{.001}
+
+
+% Short author
+\shortauthors{G. DeBrun et~al.}
+
+% Main title of the paper
+\title [mode = title]{Surface roughness build-up as an indicator of room-temperature creep}           % Short title
+\shorttitle{Surface roughness build-up as an indicator of room-temperature creep}
+
+\author[1]{Gavin DeBrun}
+\credit{Conceptualization, Methodology, Software, Data curation, Writing - original draft}
+\ead{gtdebru@sandia.gov}
+% Address/affiliation
+\affiliation[1]{
+    organization={Sandia National Laboratories},
+    city={Albuquerque},
+    postcode={87185}, 
+    state={NM },
+    country={USA}}
+    
+%
+% NATHAN
+%
+\author[1]{Nathan K. Brown}[orcid=0000-0003-3654-2357]
+\credit{Conceptualization, Methodology, Software, Data curation, Writing - original draft}
+\ead{nkbrown@sandia.gov}
+%
+% SAM
+%
+\author[2]{Samuel Inman}[orcid=0000-0002-2535-4150]
+\credit{Methodology, Investigation, Data curation, Writing - original draft}
+\affiliation[2]{
+    organization={Center for Integrated Nanotechnologies, Sandia National Laboratories},
+    city={Albuquerque},
+    postcode={87185}, 
+    state={NM},
+    country={USA}}
+\ead{sbinma@sandia.gov}
+%
+% RICARDO
+%
+\author[3]{Ricardo Lebensohn}[orcid=0000-0002-3152-9105]
+\ead{lebenso@lanl.gov}
+\credit{Methodology, Software, Writing - original draft}
+% Address/affiliation
+\affiliation[3]{organization={Los Alamos National Laboratory},
+    city={Los Alamos},
+    postcode={87545}, 
+    state={NM},
+    country={USA}}
+%
+% BRAD
+%
+\author[1]{Brad L. Boyce}[orcid=0000-0001-5994-1743]
+\credit{Conceptualization, Investigation, Writing - original draft}
+\ead{blboyce@sandia.gov}
+%
+% REMI
+%
+\author[1]{R\'emi Dingreville}[orcid=0000-0003-1613-695X]
+\cormark[1]
+\ead{rdingre@sandia.gov}
+\credit{Conceptualization, Methodology, Writing - original draft}
+% Corresponding author text
+\cortext[cor1]{Corresponding author}
+
+
+% Here goes the abstract
+\begin{abstract}
+Room-temperature creep accumulates over hundreds of hours, complicating monitoring. We test topography as a non-destructive creep indicator in laser-powder-bed-fused 316L stainless steel. Interrupted and uninterrupted tests combine digital image correlation and optical profilometry with EBSD-informed large-strain elasto-viscoplastic FFT simulations. Height maps are evaluated by arithmetic mean roughness and a $1~\mu$m-sampled, $256\times128~\mu\mathrm{m}^2$ observation operator. Because solid-only boundaries are not free surfaces, simulations are compared using normalized amplitude, spatial rank, power spectral density (PSD), and autocorrelation (ACF).
+
+Interrupted 525 and 575~MPa tests resolve roughness--strain slopes of $0.346$ and $0.257~\mu$m per percent strain, whereas the 475~MPa interval includes zero. Roughness accumulation is sublinear in strain, with power-law exponents of $0.748$ and $0.477$ at 525 and 575~MPa: surface relief develops disproportionately early, especially at the higher stress. Uninterrupted 500 and 530~MPa tests also show spatial coarsening: spectral median wavelength rises by $26.3$ and $34.5~\mu$m and ACF length by $6.44$ and $8.82~\mu$m. The solid-boundary simulation reproduces the experimental correlation-length scale but allocates too little normalized power to short wavelengths. At 575~MPa, the simulated high-slip pattern is established by 5~h and then amplified, with an early-to-final spatial rank correlation of 0.978. Orthogonal EBSD sections constrain the reconstructed three-dimensional grain size, shape, and orientation through forward sectioning. The experimental roughness band, $4.13$--$60.87~\mu$m, sets a $128\times128\times256~\mu\mathrm{m}^3$ production domain with $1~\mu$m voxels. The combined evidence supports baseline-referenced amplitude and broadband spatial redistribution as complementary indicators of creep state while identifying missing short-wavelength content in the periodic solid model.
+\end{abstract}
+
+% Use if graphical abstract is present
+% \begin{graphicalabstract}
+% \includegraphics{figs/grabs.pdf}
+% \end{graphicalabstract}
+
+% Research highlights
+\ExplSyntaxOn
+\seq_gclear:N \g_stm_prelimsau_seq
+\seq_gput_right:Nn \g_stm_prelimsau_seq
+  {Gavin~DeBrun,\c_space_token Nathan~K.~Brown,\c_space_token Samuel~Inman,\\
+   Ricardo~Lebensohn,\c_space_token Brad~L.~Boyce,\c_space_token R\'emi~Dingreville}
+\ExplSyntaxOff
+\begin{highlights}
+\item Interrupted 525 and 575~MPa tests resolve roughness--strain coupling.
+\item Roughening is front-loaded and becomes more sublinear at higher stress.
+\item Uninterrupted 500 and 530~MPa tests show spatial coarsening during creep.
+\item Simulated slip hotspots form early and persist during the creep hold.
+\item The solid-boundary model misses experimental short-wavelength PSD content.
+\end{highlights}
+
+% Keywords
+% Each keyword is seperated by \sep
+\begin{keywords}
+Room-temperature creep \sep surface roughness \sep crystal plasticity
+\end{keywords}
+
+
+\maketitle
+
+\section{Introduction}
+
+Creep is the time-dependent accumulation of inelastic deformation under sustained stress. Although commonly associated with elevated temperature, measurable creep can occur near room temperature when the applied stress approaches the material's yield strength~\cite{krempl1979experimental,kassner2014low,inman2025stochastic}. At low homologous temperature, dislocation climb is suppressed and time-dependent glide past comparatively weak obstacles can control the response~\cite{Landon1959,kassner2014low}. The resulting strain may accumulate over hundreds of hours, making conventional test matrices slow and expensive, while even modest deformation can relax preload, alter alignment, and reduce structural margins~\cite{XIE2020112332,TALEB20111936}.
+
+Laser-powder-bed-fused (LPBF) 316L stainless steel is a particularly relevant material because its layerwise thermal history produces multiscale morphological and crystallographic heterogeneity. Grain shape, texture, subgrain structure, and residual stress can all influence localization and mechanical anisotropy~\cite{charmi2021anisotropy,wang2024microstructure}. Statistical reconstruction of experimentally measured morphology therefore provides a practical route to representative-volume crystal-plasticity calculations without claiming a one-to-one reconstruction of a particular surface~\cite{bulgarevich2023rve}. For room-temperature creep, this microstructure sensitivity creates both a challenge and an opportunity: surface relief may vary among nominally identical gauge regions, yet that same relief may record the heterogeneous deformation state.
+
+Direct characterization of creep mechanisms is often destructive or spatially sparse. Slip traces, lattice rotation, and dislocation structures can reveal the active mechanisms, but they are poorly suited to repeated monitoring of large specimen populations. High-throughput geometries address the throughput problem by applying a common force to multiple gauge regions or stress levels~\cite{SINGH2022103049,Jalali2020,Jalali2020a,XU2022111857,inman2025stochastic}. Optical profilometry adds a complementary measurement: it is non-contact, repeatable, and sensitive to the cumulative surface displacement created by heterogeneous subsurface slip. The central unresolved question is whether topography contains a reproducible creep-state signal after accounting for initial surface condition, measurement scale, and microstructural variability.
+
+Microstructure-resolved FFT methods provide a natural numerical counterpart. The original elasto-viscoplastic FFT formulation efficiently solves periodic polycrystal boundary-value problems on voxel grids~\cite{LEBENSOHN201259}; its large-strain extension tracks finite deformation and evolving microstructure while retaining the computational advantages of FFT-based compatibility enforcement~\cite{nagra2017efficient,ZECEVIC2022104208}. Such calculations produce both macroscopic strain and spatially resolved slip, plastic strain, and boundary displacement. A periodic solid-only boundary plane is not a traction-free surface, however, so agreement in scalar roughness amplitude cannot be assumed. Mechanically meaningful comparisons must distinguish absolute experimental roughness from normalized progression, spatial organization, and within-model correlations.
+
+This work combines those complementary levels of evidence. First, repeated interrupted tests quantify the absolute relationship between roughness accumulation and strain and resolve the time evolution of PSD and ACF, using the specimen rather than local map sections as the statistical unit. Second, less artifact-prone uninterrupted tests determine whether the association and spatial changes survive removal of unload/reload cycles. Third, orthogonal EBSD sections constrain a statistically reconstructed three-dimensional microstructure through forward sectioning, and microstructural sampling determines the calibration-domain dimensions. The resulting hierarchy supports surface roughness as a baseline-referenced creep indicator while establishing an experimentally constrained basis for microstructure-resolved simulation.
+
+
+\section{Methods}
+
+\subsection{Experimental setup}
+
+LPBF 316L stainless steel was produced in a Renishaw AM400 and tested without
+post-build heat treatment. The high-throughput geometry placed 25 nominally
+independent gauge regions in series under a common force
+(Fig.~\ref{fig:experimental_setup}). Both gauge faces were ground through
+1200-grit SiC paper. One face was prepared for digital image correlation
+(DIC); the opposite face was retained for optical profilometry.
+
+Interrupted polished campaigns were conducted at 475, 525, and 575~MPa, with
+unloading and surface measurement after cumulative exposures of 0.25, 1.25,
+5.25, 21.25, 85.25, and 341.25~h. Uninterrupted polished campaigns were held
+for approximately 350~h at 500, 530, and 588~MPa. DIC images were acquired
+with 12.3-MP monochrome FLIR Grasshopper~3 cameras and processed with VIC-2D.
+The first image after loading was the reference, so the reported strain
+excludes elastic loading and inelastic strain accumulated during the loading
+ramp. Height maps were measured in the unloaded state with a Keyence VK-X3000
+laser-scanning microscope. The native lateral spacings were
+$1.380~\mu$m at 10$\times$ and $0.278~\mu$m at 50$\times$; both
+exports contained $768\times1024$ height samples.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figs/experimental_setup.pdf}
+    \caption{Experimental configuration. (a) Multi-gauge specimen geometry.
+    (b) Serial loading of multi-gauge specimens. The specimen $z$ axis is the
+    LPBF build direction. (c) LPBF processing parameters.}
+    \label{fig:experimental_setup}
+\end{figure}
+
+\subsection{DIC processing}
+
+An available-case mean formed independently at every DIC frame changes when
+a high- or low-straining specimen leaves the observable cohort. Interrupted
+histories also contain additive offsets when the DIC reference is reset.
+The mechanical target was therefore reconstructed from within-specimen
+increments. For specimens finite at both ends of interval $i$,
+\begin{equation}
+\Delta\bar{\epsilon}_i =
+\frac{1}{|\mathcal{S}_i|}
+\sum_{s\in\mathcal{S}_i}
+\left(\epsilon_{s,i}-\epsilon_{s,i-1}\right).
+\end{equation}
+Cross-reset increments following each interrupted measurement were set to
+zero. The accumulated history was fitted on 256 points uniform in
+$\log(1+t/1~\mathrm{min})$ by
+\begin{equation}
+\widehat{\epsilon}(t)=
+\sum_{k=1}^{24}a_k
+\left[1-\exp\left(-t/\tau_k\right)\right]+bt,
+\qquad a_k\geq0,\quad b\geq0,
+\end{equation}
+with fixed time constants spanning 20~s to three experiment durations. The
+nonnegative representation is continuous and monotone, preserves the
+paired-increment endpoint, and cannot manufacture a terminal acceleration.
+Two thousand whole-specimen bootstrap samples propagated between-specimen
+variation and the observed missingness pattern.
+
+Figure~\ref{fig:strain_reconstruction} shows that the correction is not a
+generic smoothing of the data. Within each load, differences between the
+total mean and paired-increment mean isolate changing cohort composition and
+DIC resets; differences between the paired-increment mean and the target are
+the constrained interpolation alone.
+The largest relative correction occurs at 475~MPa because a comparatively
+high-straining specimen terminates at 20.75~h. Its missing tail is not filled:
+the resulting uncertainty remains in the whole-specimen bootstrap band.
+The detailed dropout and censoring audits are provided in
+Appendix~\ref{app:experimental_processing}.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figs/experimental_strain_reconstruction.pdf}
+    \caption{Construction of the six strain targets. (a) Interrupted 475,
+    525, and 575~MPa experiments. (b) Uninterrupted 500, 530, and 588~MPa
+    experiments. Color identifies load in both panels. The total mean averages
+    every specimen available at each time. The paired-increment mean averages
+    only within-specimen changes between consecutive observations and
+    cumulatively sums them, so specimen entry or dropout cannot create a step.
+    The target is the constrained continuous interpolation of that history;
+    shading is the whole-specimen 95\% bootstrap interval. Vertical dotted
+    lines mark interrupted-test DIC resets.}
+    \label{fig:strain_reconstruction}
+\end{figure}
+
+\subsection{Roughness processing and retained length scales}
+
+Every profilometry export was required to have the declared calibration,
+exactly $768\times1024$ samples, a missing fraction no greater than
+$10^{-4}$, and no connected missing region larger than one pixel. All 444
+maps passed; 31 maps contained one isolated missing pixel, which was filled
+from the nearest finite neighbor. No map or local field was removed because
+its roughness, PSD, ACF, or height range was large.
+
+A single plane over the full $1.06\times1.41$~mm 10$\times$ field retains
+specimen-scale form and imperfectly centered fiducial relief: its median
+$S_a$ is 1.453 times the selected local estimate. Each map was therefore
+divided into a $2\times4$ grid of eight
+$530\times353~\mu\mathrm{m}^2$ fields and independently plane levelled.
+This is the only tested grid that provides at least eight subsamples, spans
+ten conservative correlation lengths on its short side, and contains at
+least 50 circular correlation areas. The specimen-time statistic is the
+median of the eight values
+\begin{equation}
+S_a=\frac{1}{N}\sum_{j=1}^{N}|h_j-\bar h|.
+\end{equation}
+Sections are subsamples; the specimen remains the independent replicate.
+
+Spatial morphology was evaluated on independently levelled
+$256\times128~\mu\mathrm{m}^2$ windows. After mean removal and a separable
+Hann taper $w$, the area-scaled two-dimensional periodogram was
+\begin{equation}
+P(k_x,k_y)=
+\Delta x\Delta y\,
+\frac{\left|\mathcal{F}\{w(h-\bar h)\}\right|^2}{\sum w^2}.
+\end{equation}
+Radial PSDs used physical-frequency annuli. The ACF used zero-padded linear
+convolution with overlap-count correction, rather than circular correlation;
+its $1/e$ crossing describes the typical correlation length and its first
+zero crossing provides an independent upper-scale check.
+
+The comparison band was selected from reproducible creep-associated change,
+not from microscope pixel size (Fig.~\ref{fig:bandwidth}). Let
+$C_t(\lambda)$ denote the radial PSD averaged over the frequency annulus
+assigned to wavelength $\lambda$. For each specimen, the endpoint spectral
+gain was
+$g(\lambda)=\log_{10}[C_f(\lambda)/C_0(\lambda)]$; $g=0$ denotes no
+change and $g=1$ denotes a tenfold increase in power. The shortest retained
+annulus required the
+lower 95\% bootstrap bound on $g$ to exceed zero independently in interrupted
+and uninterrupted experiments, giving
+$\lambda_{\min}=4.126~\mu$m. The upper bound required agreement within
+0.10 decade when the same specimens were levelled on the $2\times4$ and
+$4\times8$ fields, bootstrap intervals containing zero in both protocols,
+and support below the pooled 95th-percentile ACF first-zero crossing. The
+largest passing annulus was $\lambda_{\max}=60.871~\mu$m; the next annulus,
+$77.131~\mu$m, failed the section-scale criterion.
+Beyond this cutoff, the inferred spectral change is not a unique property of
+the surface: it changes systematically when the same height map is levelled
+over a different field size, so specimen-scale form and the removed plane
+cannot be separated from roughness. Extending the comparison to those
+wavelengths would therefore add operator-dependent whole-field shape rather
+than experimentally validated roughness information, and a larger numerical
+surface would not make those unsupported wavelengths suitable for
+validation.
+
+The large ribbons in Fig.~\ref{fig:bandwidth} are retained deliberately:
+they show between-specimen heterogeneity in spectral gain, whereas cutoff
+selection uses paired within-specimen changes and requires agreement across
+the two test protocols. Their width therefore limits precision but does not
+inflate the number of independent observations. Antialias-filtered
+resampling of native 50$\times$ maps showed that $1~\mu$m is the coarsest
+tested grid providing four cells across $\lambda_{\min}$ without material
+spectral bias. A periodic lateral domain must contain at least two copies of
+$\lambda_{\max}$, giving $L\geq121.74~\mu$m and the selected
+$128\times128~\mu\mathrm{m}^2$ surface.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figs/experimental_roughness_bandwidth.pdf}
+    \caption{Experimental definition of the retained roughness band. (a,b)
+    Median specimen-paired PSD gain $g$ and 95\% bootstrap intervals for
+    10$\times$ and 50$\times$ observations; the dashed line denotes no
+    spectral change. (c) Median absolute error in $g$ after antialias-filtered
+    resampling of native 50$\times$ maps, shown separately for interrupted and
+    uninterrupted tests. (d) Change in $g$ when the same maps are levelled on
+    $4\times8$ rather than $2\times4$ fields. The dotted horizontal limits are
+    $\pm0.10$ decade; vertical markers identify the retained upper limit and
+    the first longer annulus that fails the field-size test. Together the
+    panels give $4.13\leq\lambda\leq60.87~\mu$m and a $1~\mu$m production
+    spacing.}
+    \label{fig:bandwidth}
+\end{figure}
+
+\subsection{EBSD-informed statistical reconstruction}
+
+Orthogonal $XY$ and $YZ$ EBSD maps covered
+$256.2\times204.05~\mu\mathrm{m}^2$ at $0.35~\mu$m spacing and were
+transformed to a common specimen frame, with $z$ the build direction
+(Fig.~\ref{fig:ebsd_dream3d}). The XZ section was excluded because scratches
+and pitting obscured a defensible orientation-based segmentation. Plane-
+specific IQ and misorientation thresholds were used because image quality
+and surface damage differed between $XY$ and $YZ$. Pits and scratches were
+restored to feature ID zero after segmentation and did not enter the grain
+statistics. A temporary two-pixel closing allowed crystallographically
+continuous material across the dominant YZ scratch to remain one grain.
+
+Only complete, non-surface grains were merged: 329 from $XY$ and 84 from
+$YZ$. The orientation distributions were normalized within each plane and
+averaged with equal plane weights; misorientations were pooled by measured
+boundary length. Two-dimensional diameters and neighbor counts were not
+treated as direct three-dimensional statistics. Candidate ellipsoidal
+populations were instead sectioned in both planes and compared with the EBSD
+diameter, aspect-ratio, neighbor, and major-axis distributions. The accepted
+population has $\mu_{\ln d}=2.0$, $\sigma_{\ln d}=0.85$,
+$b/a=0.40$, $c/a=0.15$, and a $55~\mu$m maximum equivalent diameter.
+
+Periodic DREAM.3D realizations were produced in two passes. The first sampled
+grain geometry; measured $XY$ and $YZ$ major-axis projections then replaced
+the sampled shape orientations; the fixed geometry was rasterized; and
+crystallographic orientations were assigned separately from the merged ODF
+and MDF. This separation prevents grain-shape orientation from replacing the
+measured texture. The production ensemble contains three independent
+$128\times128\times256~\mu\mathrm{m}^3$ realizations with $1~\mu$m voxels
+and an eight-voxel minimum connected feature. The detailed segmentation,
+forward-sectioning, and realization parameters are listed in
+Appendix~\ref{app:microstructure}.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figs/ebsd_to_microstructure.pdf}
+    \caption{EBSD-informed reconstruction. The first two columns show the
+    measured image-quality fields and DREAM.3D segmentations in the specimen
+    frame for $XY$ (top) and $YZ$ (bottom). White pixels have feature ID zero
+    and do not enter the statistics. The final column is a section through a
+    periodic synthetic realization generated from the merged statistics; $z$
+    is the build direction.}
+    \label{fig:ebsd_dream3d}
+\end{figure}
+
+\subsection{Large-strain FFT model and calibration}
+
+Room-temperature deformation was simulated with the large-strain
+elasto-viscoplastic fast Fourier transform (LS-EVPFFT) framework
+developed in Refs.~\cite{nagra2017efficient,ZECEVIC2022104208}. The solver
+advances a periodic voxelized polycrystal while enforcing compatibility
+through an FFT correction. Plastic flow was represented by FCC
+crystallographic slip,
+\begin{equation}
+\mathbf{L}^{p}=\sum_{\alpha=1}^{N_s}
+\dot{\gamma}^{\alpha}\mathbf{s}^{\alpha}\otimes\mathbf{m}^{\alpha},
+\end{equation}
+where $\mathbf{s}^{\alpha}$ and $\mathbf{m}^{\alpha}$ are the slip direction
+and slip-plane normal. Slip rates followed
+\begin{equation}
+\dot{\gamma}^{\alpha}
+=
+\dot{\gamma}_{0,x}^{(\sigma)}
+\left|\frac{\tau^{\alpha}}{g^{\alpha}}\right|^{
+n_{\mathrm{sr},x}^{(\sigma)}}
+\operatorname{sign}(\tau^{\alpha}),
+\end{equation}
+where $\tau^\alpha$ and $g^\alpha$ are the resolved shear stress and slip
+resistance. The load-specific reference rate
+$\dot{\gamma}_{0,x}^{(\sigma)}$ and rate exponent
+$n_{\mathrm{sr},x}^{(\sigma)}$ parameterize the measured stress range; they
+are not interpreted as a continuous constitutive law in applied stress.
+Voce hardening evolved with accumulated slip $\Gamma$,
+\begin{equation}
+g^{\alpha}(\Gamma)=
+\tau_0^{\alpha}+
+\left(\tau_1+\theta_1\Gamma\right)
+\left[1-\exp\left(-\frac{\theta_0\Gamma}{\tau_1}\right)\right],
+\qquad
+\Gamma=\sum_\alpha\int|\dot{\gamma}^{\alpha}|\,dt .
+\end{equation}
+
+The slip resistance combines two distinct strengthening contributions.
+Voce hardening raises resistance as slip accumulates and therefore represents
+work hardening during loading and the hold. Hall--Petch strengthening augments
+the initial resistance by $h_{\mathrm{HP}}/\sqrt{d_g}$, where $d_g$ is the
+grain diameter, to represent grain boundaries impeding slip transfer.
+Including both terms prevents the fitted work-hardening law from absorbing a
+systematic grain-size contribution.
+
+Independent
+constitutive calibrations were performed for interrupted and uninterrupted
+protocols. For each candidate and load, the bulk strain histories from three
+deterministic $32\times32\times64$ realizations were averaged before
+calculating the load loss; load losses were then averaged. These calibration
+realizations occupy the same $128\times128\times256~\mu\mathrm{m}^3$
+physical domain as production but use $4~\mu$m voxels. The final
+orientation-corrected fields contain 1573 grains on average in the
+calibration ensemble and 1527 in the production ensemble
+(Table~\ref{tab:realized_grain_counts}). Both exceed the order-$10^3$-grain
+guideline reported by Lim et al.\ for stabilizing homogenized uniaxial
+polycrystal response~\cite{lim2019rve}. This comparison supports the
+bulk-strain calibration domain; agreement of local morphology is established
+separately by forward sectioning and the retained experimental roughness
+bandwidth. Cubic elastic constants were fixed to $C_{11}=206$,
+$C_{12}=133$, and $C_{44}=119$~GPa for the uninterrupted calibration,
+whereas the interrupted calibration retained its fitted elastic constants
+listed in Appendix~\ref{app:numerical}. Surface roughness was not part of the
+objective.
+
+For load $\ell$, the simulated target was the mean
+$\bar{\epsilon}^{\mathrm{sim}}_\ell(t)=
+\frac{1}{3}\sum_{r=1}^{3}\epsilon^{\mathrm{sim}}_{\ell,r}(t)$ of the three
+microstructures. Simulation and experiment were evaluated on the
+experimental time grid. The load loss combined an amplitude term and a
+normalized-shape term,
+\begin{equation}
+L_\ell=L_{\mathrm{amp},\ell}+L_{\mathrm{shape},\ell},
+\end{equation}
+\begin{equation}
+L_{\mathrm{amp},\ell}=
+\frac{1}{N_\ell}\sum_i
+\left[
+\frac{\widehat{\epsilon}_\ell(t_i)
+-\bar{\epsilon}^{\mathrm{sim}}_\ell(t_i)}
+{\max_t\widehat{\epsilon}_\ell(t)}
+\right]^2,
+\end{equation}
+\begin{equation}
+L_{\mathrm{shape},\ell}=
+\frac{1}{N_\ell}\sum_i
+\left[
+\frac{\bar{\epsilon}^{\mathrm{sim}}_\ell(t_i)}
+{\bar{\epsilon}^{\mathrm{sim}}_\ell(t_f)}
+-\frac{\widehat{\epsilon}_\ell(t_i)}
+{\widehat{\epsilon}_\ell(t_f)}
+\right]^2.
+\end{equation}
+The objective was the unweighted mean of $L_\ell$ over the three loads.
+Thus stochastic microstructural response was averaged before scoring, in the
+same order used to construct the experimental population target. Timed-out,
+failed, or incomplete candidates received the upper loss cap of 2; partial
+curves were not scored.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/calibration_best_strain_fits.pdf}
+    \caption{Constitutive calibration fits for (a) uninterrupted calibration~2
+    and (b) interrupted calibration~3. Solid curves and light bands are the
+    reconstructed experimental targets and their bootstrap standard
+    deviations; dashed curves and darker bands are the mean and standard
+    deviation of the three calibration microstructures. The objective is
+    evaluated from each load's simulated ensemble mean.}
+    \label{fig:calibration_fit}
+\end{figure}
+
+The production morphology grid contains $128\times128\times256$ cells at
+$1~\mu$m spacing. Because the Hall--Petch term scales as
+$h_{\mathrm{HP}}/\sqrt{d}$, the production coefficient
+$h_{\mathrm{HP}}^{\mathrm{prod}}$ was set to
+$2h_{\mathrm{HP}}^{\mathrm{cal}}$ when transferring from the $4~\mu$m
+calibration representation to the $1~\mu$m production representation. Four
+spatial states were retained per load. Normal
+displacement was extracted from the transverse periodic boundary plane and
+independently plane levelled. This plane is not traction free; its
+displacement is therefore a solid-boundary morphology diagnostic rather than
+an absolute prediction of measured surface height. Endpoint numerical spectra
+and ACFs are the means of the two unique orthogonal longitudinal boundary
+planes; opposite periodic faces are not treated as independent observations.
+For the illustrative 575~MPa comparison, the experimental window was selected
+by its joint proximity to the cohort medians of endpoint $\Delta S_a$,
+normalized PSD shape, and ACF shape. Experimental height and numerical
+displacement were each divided by their own endpoint RMS before applying one
+common dimensionless color scale. Accumulated slip was summarized by its
+surface median and 10th--90th percentiles; early-to-final persistence was
+quantified by Spearman correlation and top-decile retention. The constitutive
+loss, solver acceptance rules, and matched spatial operators are specified in
+Appendix~\ref{app:numerical}.
+
+\subsection{Statistical inference}
+
+Interrupted $\Delta S_a$--strain slopes were fitted through the origin after
+specimen-level baseline subtraction, using every nonbaseline time. Confidence
+intervals resampled whole specimen histories. Endpoint means, PSD changes,
+and ACF changes were likewise bootstrapped over specimens; local sections and
+windows were never treated as independent replicates. Paired spectral changes
+were tested with two-sided Wilcoxon signed-rank tests and Holm adjustment.
+Estimator robustness was evaluated under eight prespecified combinations of
+field size, detrending, taper, bin count, and shortest retained wavelength.
+The resolved 525 and 575~MPa histories were also fitted to
+$\Delta S_a=K\epsilon_c^\beta$. Exponent intervals resampled complete
+profilometry histories while retaining the population calibration target as
+the common creep-state coordinate.
+
+\iffalse
+
+\subsection{Material, specimen geometry, and creep testing}
+
+The material was LPBF 316L stainless steel produced in a Renishaw AM400 system and tested without post-build heat treatment. The multi-gauge geometry followed the high-throughput method of Inman et al.~\cite{inman2025stochastic}. Each printed specimen contained five nominally independent tensile gauge regions separated by wider, lower-stress links, and multiple specimens were chained through adapters so that a uniform applied force loaded 25 gauge regions concurrently. Before testing, both sides were mechanically ground through 1200-grit SiC paper. One side was then painted white and speckled black for digital image correlation (DIC); the opposite polished side was retained for profilometry.
+
+Three uninterrupted specimen chains were loaded at 2500, 2650, and 2940~N and held for approximately 350~h in a TestResources 313 servoelectric load frame. The corresponding engineering stresses used in this study are 500, 530, and 588~MPa. Interrupted campaigns were conducted at 475, 525, and 575~MPa. Each interrupted schedule was unloaded for non-destructive measurements after 0.25, 1.25, 5.25, 21.25, 85.25, and 341.25~h of cumulative exposure. All tests used a loading rate of $0.675~\mathrm{mm\,s^{-1}}$, approximately $3\times10^{-3}~\mathrm{s^{-1}}$ in engineering strain rate.
+
+\subsection{Strain and surface measurements}
+
+Images of the speckled surfaces were acquired with 12.3-MP monochrome FLIR Grasshopper~3 cameras, and strain was calculated with VIC-2D. The first image after loading was the DIC reference, so the reported strain excludes elastic loading and any plastic strain accumulated during the loading ramp. Interrupted creep histories were reconstructed by shifting each interval by the residual strain at the end of the preceding interval.
+
+Height maps were acquired in the unloaded state with a Keyence VK-X3000 three-dimensional laser-scanning microscope over an approximately $1.5~\mathrm{mm}^2$ region centered on a 0.1-kgf Vickers-indent fiducial. Interrupted specimens were measured before loading and at every interruption; uninterrupted specimens were intended to be measured before and after the hold. The 500 and 530~MPa uninterrupted datasets contain 25 paired pre/post surface specimens each. At 588~MPa, 17 pre-test and 25 post-test maps are available, but only 14 specimen identifiers form pairs. All 17 baseline images contain directional grinding relief, and none resolves the intended central Vickers fiducial. Their median $S_a$ is 10.5 and 4.9 times the corresponding 500 and 530~MPa baselines, respectively. The pre-test surface condition and field location are therefore not comparable to the other uninterrupted baselines, so these maps are retained only for a within-load scalar sensitivity check. DIC camera ordinals cannot be translated to the physical profilometry identifiers in the available uninterrupted metadata, so strain and roughness are paired by specimen only in the interrupted datasets and compared as load-level distributions in the uninterrupted datasets.
+
+Before analysis, every 10$\times$ and 50$\times$ CSV was checked for the recorded XY calibration, an exact $768\times1024$ height grid, a missing-pixel fraction no greater than $10^{-4}$, and no connected missing region larger than one pixel. Maps failing any criterion were excluded with a recorded reason. Isolated one-pixel export gaps in otherwise valid maps were filled from the nearest finite pixel before filtering. All 444 maps passed these structural acquisition checks; 31 contained one filled pixel. The 588~MPa baselines were excluded from cross-load and spatial-evolution inference on the basis of their incomplete matched coverage and the surface-condition and field-location inconsistencies described above.
+
+For the absolute experimental analysis, each native-sampling 10$\times$ map was partitioned into a fixed $2\times4$ grid. The eight $384\times256$-pixel regions (approximately $530\times353~\mu\mathrm{m}^2$) were plane leveled independently. Arithmetic mean height, $S_a$, was calculated in every region, and the specimen-time statistic was their median; no region or specimen was removed from the primary analysis. Roughness and strain were expressed as changes from the first paired observation. Domain size was selected from $1\times1$, $2\times2$, $2\times4$, $4\times4$, $4\times8$, and $8\times8$ candidates without designating one as the reference. Because roughness estimates and levelling bias depend on sampling area relative to the surface correlation length~\cite{necas2020roughness,singh2024representative}, correlation length was calculated independently at the native $1.380~\mu$m spacing from four plane-leveled $256\times256~\mu\mathrm{m}^2$ peripheral patches per map, excluding the central fiducial. Across 226 maps and 904 patches, the map-level 95th-percentile ACF $1/e$ length, $\ell_{95}$, was $31.55~\mu$m. A candidate of area $A$ had to provide at least eight subsamples, span ten $\ell_{95}$ on its short side, and contain at least 50 conservative circular correlation areas, $N_c=A/(\pi\ell_{95}^2)$. The first spatial condition limits the correlation-length-to-window ratio to 0.1 along both axes and the leading two-dimensional finite-area bias scale, proportional to $(\ell/L)^2$, to order 1\%~\cite{necas2020roughness}; the second supplies approximately 50 correlation-scale sampling units and a nominal $1/\sqrt{50}=14\%$ sampling-error scale. Eight sections permit median aggregation and a leave-one-section-out sensitivity calculation within each map. The $2\times4$ grid was the only eligible candidate, with 59.9 correlation areas, 11.2 correlation lengths on its short side, eight subsamples, and a median relative bootstrap standard error of 15.7\%. Larger domains supplied fewer than eight subsamples; $4\times4$ and smaller domains failed the physical-area criteria. Bootstrap error was reported as a precision diagnostic but was not used as a pass/fail rule.
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Experimental section-domain selection. Relative SE is the median map-level bootstrap standard error divided by the map median $S_a$. Eligibility requires all three physical criteria stated in the text.}
+\label{tab:section_domain_selection}
+\begin{tabular}{lrrrrl}
+\hline
+Grid & Sections & Domain ($\mu$m$^2$) & Correlation areas & Relative SE (\%) & Eligible \\
+\hline
+$1\times1$ & 1 & $1060\times1413$ & 478.8 & -- & no \\
+$2\times2$ & 4 & $530\times707$ & 119.7 & 15.4 & no \\
+$2\times4$ & 8 & $530\times353$ & 59.9 & 15.7 & yes \\
+$4\times4$ & 16 & $265\times353$ & 29.9 & 12.7 & no \\
+$4\times8$ & 32 & $265\times177$ & 15.0 & 9.7 & no \\
+$8\times8$ & 64 & $132\times177$ & 7.5 & 7.3 & no \\
+\hline
+\end{tabular}
+\end{table}
+
+A modified-z-score section filter was evaluated only as a named sensitivity analysis: within each dataset and time, a section was excluded when the absolute modified z score of either $S_a$ or maximum absolute leveled height was at least 3.5. The modified score is $0.675(x-\widetilde{x})/\mathrm{MAD}$, and retained sections are aggregated with the same median as in the primary analysis. Across the five primary datasets, all 1808 sections enter the primary analysis and 1582 (87.5\%) pass this screen. The rejected median $S_a$ is $2.010~\mu$m, compared with $0.528~\mu$m among retained sections, and four maps lose every section; one 575~MPa endpoint pair becomes unanalyzable. Because the filter preferentially removes high-relief regions, it was confined to sensitivity analysis. Without deletion, the maximum leave-one-section-out change of the map median is 2.8\% at the median map and 13.6\% at the 95th percentile. The three polished interrupted campaigns comprise 18 specimens, seven paired times per specimen, 126 surface-time measurements, and 1008 local regions.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/experimental_method_selection.pdf}
+    \caption{Experimental sectioning and response-screen sensitivity. (a) The correlation-area, short-side, and subsample criteria normalized by their respective thresholds; a grid is eligible only when all three values are at least one. (b) Map $S_a$ relative to the selected $2\times4$ operator. A single global plane retains map-scale form, whereas finer sectioning removes progressively more long-wavelength content. (c) Specimen endpoint $\Delta S_a$ for the five primary cohorts using the selected grid; horizontal bars denote cohort medians. (d) Cohort-median endpoint changes under all-section median and mean aggregation and under modified-z screens. Response screening does not enter the primary analysis.}
+    \label{fig:experimental_method_selection}
+\end{figure}
+
+\subsection{EBSD-informed microstructure reconstruction}
+
+To characterize the initial microstructure, a representative specimen was sectioned so that all three gauge orientations could be cold mounted. Sections were ground to approximately the specimen center to reduce the influence of border passes and polished through $0.25~\mu$m diamond suspension. EBSD maps covering approximately $5\times10^4~\mu\mathrm{m}^2$ were acquired in a Thermo Fisher Scientific Scios~2 dual-beam microscope equipped with an EDAX Velocity detector and processed with OIM Analysis and DREAM.3D. The cleanup and segmentation sequence included bad-pixel masking, neighborhood orientation correlation, misorientation-based feature segmentation, feature-size and neighbor-count filtering, and final dilation/erosion cleanup. Exported descriptors included morphology, neighborhood connectivity, crystallographic orientation, and surface/bias labels.
+
+The $XZ$ scan was excluded because deep pitting and large scratches prevented reliable segmentation. The retained $XY$ and $YZ$ maps each covered $256.2\times204.1~\mu\mathrm{m}^2$ at a $0.35~\mu$m step. Grain segmentation used the $5^\circ$ tolerance recorded in both OIM exports. Features smaller than 32 pixels ($3.92~\mu\mathrm{m}^2$, or a $2.23~\mu$m equivalent-circle diameter) were merged before morphology statistics were calculated. This threshold removes 0.27\% and 0.45\% of the indexed areas in $XY$ and $YZ$, respectively, while reducing the simulated 90th-percentile aspect-ratio digitization error below 10\%. The corrected segmentations contain 152 and 188 active grains. Restricting diameter and shape measurements to complete grains that do not intersect a map edge leaves 113 $XY$ and 111 $YZ$ observations, with median equivalent diameters of 6.96 and $7.41~\mu$m and median minor-to-major aspect ratios of 0.441 and 0.484.
+
+Crystallographic and shape orientations were expressed in the specimen $xyz$ frame before the two maps were combined; the local axes of the longitudinal scan map to specimen $(y,z,x)$. The two equal-area maps contributed equally to the orientation distribution function. Misorientation statistics were pooled in proportion to measured boundary length. The two-dimensional size, aspect-ratio, and neighbor distributions were not treated as direct three-dimensional statistics. Instead, one major-axis projection was sampled independently from each measured plane to reconstruct a three-dimensional axis direction, with uniform rotation about that axis, and the remaining morphology parameters were determined by forward sectioning. This distinction is important because microstructural representation can have little effect on bulk response while substantially changing local plastic-strain distributions~\cite{dingreville2010microstructure}.
+
+The forward model used four independent $64\times64\times128~\mu\mathrm{m}^3$ reconstructions for each of 24 local parameter combinations. Nine $XY$ and nine $YZ$ sections were sampled per realization. Synthetic sections were subjected to the same $3.92~\mu\mathrm{m}^2$ minimum-area rule as the EBSD features. The objective was the equal-plane mean of interquartile-range-standardized Wasserstein distances for equivalent diameter, aspect ratio, and neighbor count, together with an axial Wasserstein distance for the in-plane major-axis direction. Candidates within one standard error of the minimum were ranked by realization-to-realization grain-count variation. The selected lognormal parameters are $\mu=2.00$ and $\sigma=0.85$, with $B/A=0.40$, $C/A=0.15$, and a $55~\mu$m upper diameter cutoff. The cutoff equals the 99th percentile of complete-grain diameters in the $YZ$ section; increasing it to $70~\mu$m did not improve the section match but increased grain-count variation. Across the selected realizations, median synthetic section diameters are 7.26 and $7.40~\mu$m in $XY$ and $YZ$, and median aspect ratios are 0.488 and 0.441.
+
+Voxel spacing and connected-feature cleanup were evaluated by rasterizing the same four feature sets at 0.5, 1, 2, and $4~\mu$m. The mean morphology distance changes by only $3.5\times10^{-4}$ between 0.5 and $1~\mu$m for an $8~\mu\mathrm{m}^3$ cleanup volume, but increases by 0.035 at $2~\mu$m and by 0.139 at $4~\mu$m. Cleanup volumes from 1 to $16~\mu\mathrm{m}^3$ are indistinguishable at $1~\mu$m spacing. The EBSD cleanup area maps to approximately $8~\mu\mathrm{m}^3$ under the measured orthogonal aspect ratios, giving the selected $1~\mu$m spacing and eight-cell cutoff.
+
+The calibration-domain study used microstructural sampling rather than a
+prescribed grain count. Six realizations were generated at each of five
+domain sizes. Volume-weighted maximum FCC Schmid factor under build-direction
+loading and the Hall--Petch-sensitive moment
+$\langle d^{-1/2}\rangle_V$ were required to have realization coefficients
+of variation below 1\% and 2\%, respectively; their ensemble means were also
+required to remain within 1\% and 2\% of the
+$128\times128\times256~\mu\mathrm{m}^3$ reference. The 95th-percentile
+largest-grain volume fraction was limited to 5\%. A
+$96\times96\times192~\mu\mathrm{m}^3$ volume is the smallest candidate that
+satisfies those bulk-response criteria. The experimentally retained roughness
+band independently requires a $128~\mu$m transverse surface, however.
+Calibration and production therefore use the same
+$128\times128\times256~\mu\mathrm{m}^3$ physical domain: three fixed
+$32\times32\times64$ calibration fields at $4~\mu$m spacing and three fixed
+$128\times128\times256$ production fields at $1~\mu$m spacing.
+
+The final orientation-corrected feature-ID fields contain 1573 grains on
+average in the calibration ensemble (range 1534--1638) and 1527 in the
+production ensemble (1508--1553), as summarized in
+Table~\ref{tab:realized_grain_counts}. Lim et al.\ found that an order of
+$10^3$ grains was required to suppress realization variability in the
+homogenized uniaxial response of morphology-bearing polycrystals
+\cite{lim2019rve}. Both ensembles exceed that bulk-response benchmark. Grain
+count alone does not validate local morphology; the latter is established
+separately by the forward-section match and by the experimentally retained
+roughness bandwidth.
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Voxel-spacing sensitivity at the EBSD-derived $8~\mu\mathrm{m}^3$ cleanup volume. At $4~\mu$m, one voxel already occupies $64~\mu\mathrm{m}^3$. Distances are equal-plane forward-section morphology distances averaged over four matched feature sets.}
+\label{tab:voxel_feature_selection}
+\begin{tabular}{rrrr}
+\hline
+Spacing ($\mu$m) & Minimum cells & Effective volume ($\mu\mathrm{m}^3$) & Distance \\
+\hline
+0.5 & 64 & 8 & 0.214 \\
+1.0 & 8 & 8 & 0.214 \\
+2.0 & 1 & 8 & 0.248 \\
+4.0 & 1 & 64 & 0.352 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/microstructure_resolution_selection.pdf}
+    \caption{EBSD-informed statistical reconstruction. (a) Mean shape distance across the joint $B/A$ and $C/A$ grid. (b) Marginal morphology distance for the candidate lognormal parameters. (c) Voxel-spacing sensitivity; the shaded range spans the tested cleanup volumes.}
+    \label{fig:microstructure_resolution_selection}
+\end{figure}
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Bulk-response domain sampling across six independent realizations. $f_{\max,95}$ is the 95th percentile of the largest-grain volume fraction. The $96~\mu$m transverse domain is the smallest bulk-eligible candidate; the final $128~\mu$m domain is set by the experimental surface bandwidth.}
+\label{tab:solver_domain_selection}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{rrrrrrl}
+\hline
+Transverse size ($\mu$m) & Mean grains & Effective grains & $f_{\max,95}$ (\%) & Schmid CV (\%) & $\langle d^{-1/2}\rangle_V$ CV (\%) & Bulk criteria \\
+\hline
+32  & 34.8   & 4.3   & 79.44 & 4.84 & 11.23 & no \\
+48  & 94.8   & 12.7  & 33.18 & 2.18 & 5.92  & no \\
+64  & 218.3  & 26.5  & 13.34 & 2.48 & 5.32  & no \\
+96  & 674.8  & 87.0  & 4.24  & 1.00 & 0.84  & yes \\
+128 & 1588.3 & 199.0 & 1.95  & 0.83 & 0.98  & yes \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Realized grain counts in the three final, orientation-corrected microstructures of each ensemble. Counts are unique positive feature IDs after the second-pass rasterization.}
+\label{tab:realized_grain_counts}
+\begin{tabular}{lrrr}
+\hline
+Ensemble & Grid & Spacing ($\mu$m) & Mean grains [range] \\
+\hline
+Calibration & $32\times32\times64$ & 4 & 1573 [1534--1638] \\
+Production & $128\times128\times256$ & 1 & 1527 [1508--1553] \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/calibration_domain_sampling.pdf}
+    \caption{Calibration-domain sampling. (a) Realization coefficients of variation in the volume-weighted maximum FCC Schmid factor and $\langle d^{-1/2}\rangle_V$; dashed lines mark their respective accuracy targets. (b) The 95th-percentile largest-grain volume fraction. (c) Equal-plane section morphology distance.}
+    \label{fig:calibration_domain_sampling}
+\end{figure}
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/ebsd_to_microstructure.pdf}
+    \caption{EBSD-informed reconstruction. Grayscale image-quality maps and DREAM.3D segmentations are shown for the $XY$ (top) and $YZ$ (bottom) sections. The single synthetic microstructure is generated from the merged crystallographic statistics and the forward-sectioned three-dimensional morphology. The specimen $z$ axis is the build direction.}
+    \label{fig:ebsd_dream3d}
+\end{figure}
+
+\subsection{Large-strain FFT-based crystal plasticity}
+Room-temperature creep was simulated with a large-strain elasto-viscoplastic fast Fourier transform framework (LS-EVPFFT) following the microstructure-resolved formulations developed in Refs.~\cite{nagra2017efficient,ZECEVIC2022104208}. The solver operates on a periodic voxelized representative volume and advances the deformation state at each material point while enforcing compatibility through the FFT-based correction. This finite-strain setting provides both the macroscopic strain required for mechanical validation and the heterogeneous deformation used for the solid-only roughness diagnostics.
+
+Each voxel in the synthetic AM 316L microstructure was assigned a crystallographic orientation sampled from the DREAM.3D-generated ensemble. Plastic flow was represented by crystallographic slip,
+\begin{equation}
+    \mathbf{L}^{p}=\sum_{\alpha=1}^{N_s}
+    \dot{\gamma}^{\alpha}\mathbf{s}^{\alpha}\otimes\mathbf{m}^{\alpha},
+\end{equation}
+where $\mathbf{s}^{\alpha}$ and $\mathbf{m}^{\alpha}$ are the slip direction and slip-plane normal for system $\alpha$. Slip rates were described by a power-law flow rule,
+\begin{equation}
+    \dot{\gamma}^{\alpha}
+    =
+    \dot{\gamma}_{0,x}^{(\sigma)}
+    \left|
+    \frac{\tau^{\alpha}}{g^{\alpha}}
+    \right|^{n_{\mathrm{sr},x}^{(\sigma)}}
+    \mathrm{sign}(\tau^{\alpha}),
+\end{equation}
+where $\tau^{\alpha}$ is the resolved shear stress, $g^{\alpha}$ is the slip resistance, and $\dot{\gamma}_{0,x}^{(\sigma)}$ and $n_{\mathrm{sr},x}^{(\sigma)}$ are load-dependent creep-rate parameters. This load dependence is a practical calibration device for the present room-temperature creep data rather than a continuous constitutive relation in applied stress.
+
+Hardening was represented with a Voce-type law. In schematic form, the resistance evolved with accumulated slip $\Gamma$ as
+\begin{equation}
+    g^{\alpha}(\Gamma)
+    =
+    \tau_0^{\alpha}
+    +
+    \left(\tau_1+\theta_1\Gamma\right)
+    \left[
+    1-\exp\left(-\frac{\theta_0\Gamma}{\tau_1}\right)
+    \right],
+    \qquad
+    \Gamma=\sum_{\alpha}\int |\dot{\gamma}^{\alpha}|\,dt .
+\end{equation}
+To include grain-size effects in the statistically generated microstructures, the initial slip resistance was augmented by a Hall-Petch contribution,
+\begin{equation}
+    \tau_{0,g}^{\alpha}
+    =
+    \tau_{0}^{\alpha}
+    +
+    \frac{h_{\mathrm{HP}}}{\sqrt{d_g}},
+\end{equation}
+where $d_g$ is the grain-size measure assigned to grain $g$ and $h_{\mathrm{HP}}$ is the calibrated Hall-Petch factor.
+
+The Hall--Petch factor is identified using the three fixed
+$32\times32\times64$ calibration realizations with $4~\mu$m voxels
+($128\times128\times256~\mu\mathrm{m}^3$ physical domains), so the grain-size
+distributions entering the calibration are the distributions used to define
+the constitutive parameters.
+
+Traction-free FFT boundaries require either a non-periodic constraint formulation or a compliant exterior phase that disconnects the solid surfaces from their periodic images~\cite{cocke2023damage,zecevic2025nonperiodic}. The solid-only calculations use initially flat periodic boundary planes. Equivalent plastic strain, $\varepsilon_{\mathrm{vm}}^p$, is the macroscopic progression variable for the surface analysis, consistent with the plastic-strain observable used for calibration. Surface displacement is therefore interpreted through relative amplitude and spatial organization rather than as an absolute free-surface roughness prediction.
+
+\subsection{Constitutive parameterization and mechanical reference}
+
+The constitutive parameterization uses Bayesian optimization as a sample-efficient strategy for expensive nonlinear forward simulations. Roughness is not included in the objective and remains an independent post-parameterization observable. For a candidate parameter vector $\mathbf{p}$ and load case $\sigma$, the mechanical loss contains a strain-history mismatch and a normalized curve-shape term,
+\begin{equation}
+    \mathcal{J}_{\sigma}(\mathbf{p})
+    =
+    \mathcal{J}_{\mathrm{mag},\sigma}(\mathbf{p})
+    +
+    \lambda_{\mathrm{shape}}
+    \mathcal{J}_{\mathrm{shape},\sigma}(\mathbf{p}) .
+\end{equation}
+The first term penalized the direct strain-history error over the common simulated/experimental time window,
+\begin{equation}
+    \mathcal{J}_{\mathrm{mag},\sigma}
+    =
+    \frac{1}{N_{\sigma}}
+    \sum_{n=1}^{N_{\sigma}}
+    \left[
+    \varepsilon_{\mathrm{sim}}(t_n,\sigma;\mathbf{p})
+    -
+    \varepsilon_{\mathrm{exp}}(t_n,\sigma)
+    \right]^2 ,
+\end{equation}
+for the MSE metric used in the present parameter search. The second term compared the normalized shape of the two creep curves after scaling each curve by its value at the end of the overlapping time window,
+\begin{equation}
+    \mathcal{J}_{\mathrm{shape},\sigma}
+    =
+    \frac{1}{M_{\sigma}}
+    \sum_{m=1}^{M_{\sigma}}
+    \left[
+    \frac{\varepsilon_{\mathrm{sim}}(s_m,\sigma;\mathbf{p})}
+         {\varepsilon_{\mathrm{sim}}(t_{\mathrm{end}},\sigma;\mathbf{p})}
+    -
+    \frac{\varepsilon_{\mathrm{exp}}(s_m,\sigma)}
+         {\varepsilon_{\mathrm{exp}}(t_{\mathrm{end}},\sigma)}
+    \right]^2 .
+\end{equation}
+Here, $s_m$ denotes the union of the simulated and experimental time points inside the overlapping interval, with interpolation used to evaluate both curves on that common grid. The parameter search uses $\lambda_{\mathrm{shape}}=1$ and sums the load-case objectives. The calibration objective evaluates the volume-averaged axial plastic strain, $\varepsilon_{33}^p$ (solver output \texttt{epav33}).
+
+The parameter vector contains forward/backward slip resistances, Voce
+hardening parameters, a Hall--Petch factor, and load-specific
+$\dot{\gamma}_{0,x}^{(\sigma)}$ and $n_{\mathrm{sr},x}^{(\sigma)}$.
+Cubic elastic constants were fixed in the uninterrupted calibration and
+included in the interrupted calibration. The three deterministic
+microstructure responses were averaged at each load before evaluating the
+objective, so no single realization was forced to represent the ensemble
+mean. The retained values and their production-grid Hall--Petch transfer are
+reported in Appendix~\ref{app:numerical}.
+
+\subsection{Numerical surface fields and matched-scale roughness}
+
+Normal displacement was extracted from the four transverse periodic boundary planes. The outward-normal sign was corrected before the negative and positive face of each orientation were aligned. Because opposing periodic faces are redundant, their plane-leveled displacement fluctuations were averaged and never counted as independent replicates. The two transverse orientations were retained as paired observations within an RVE. Numerical arithmetic mean roughness was
+\begin{equation}
+    S_a=\frac{1}{A}\int_A\left|u_n-\Pi_1(u_n)\right|\,\mathrm{d}A,
+\end{equation}
+where $\Pi_1$ is the least-squares mean plane. Relative roughness and equivalent plastic strain were expressed as
+\begin{equation}
+    R(t)=\frac{S_a(t)-S_a(0)}{S_a(t_f)-S_a(0)},
+    \qquad
+    E(t)=\frac{\varepsilon_p(t)-\varepsilon_p(0)}
+    {\varepsilon_p(t_f)-\varepsilon_p(0)}.
+\end{equation}
+Power-law exponents $\beta$ were obtained from $R=E^\beta$ after constraining the normalized endpoint to $(1,1)$.
+
+For direct scale matching, every acquisition-valid 10$\times$ experimental map was bilinearly resampled from its measured $1.380~\mu$m pixel spacing to the $1~\mu$m numerical grid and cropped to the largest centered integer grid of non-overlapping $256\times128$-pixel windows. Upsampling changes the sampling lattice but does not add measurement bandwidth; the PSD limit remains the native 10$\times$ Nyquist frequency. Each $256\times128~\mu\mathrm{m}^2$ window matches one longitudinal numerical boundary-plane footprint and was leveled independently. A standard map yields 44 windows; no window is rejected after its parent map passes acquisition validity. The primary uninterrupted multi-load spatial analysis contains 125 maps and 5500 windows; the field-inconsistent 588~MPa pre-test maps do not enter paired PSD/ACF inference. Endpoint estimator robustness uses all paired baseline/final maps from the 475, 525, 575, 500, and 530~MPa cohorts. Window results were aggregated to a map median before specimen-level inference; specimens, not windows, are the experimental replicates.
+
+\subsection{Power spectra and autocorrelation}
+
+For a leveled height or displacement field $h$, the two-dimensional periodogram was evaluated following established spectral-topography practice~\cite{jacobs2017spectral} after applying an identical separable Hann taper $w$ to experiment and simulation,
+\begin{equation}
+    P(k_z,k_t)=\Delta z\Delta t\,
+    \frac{\left|\mathcal{F}\{w(h-\bar h)\}\right|^2}{\sum w^2}.
+\end{equation}
+The azimuthal mean was calculated in 17 common physical-frequency bins from $1/256$ to $0.362~\mu\mathrm{m}^{-1}$. The upper bound is the native 10$\times$ Nyquist frequency, corresponding to a $2.76~\mu$m wavelength, so the resampling step is not interpreted as new spatial information. Radial PSDs were divided by their frequency integral for morphology comparison; absolute PSD was retained only for paired experimental post/pre gain. Spectral median wavelength and the fraction of resolved power at $\lambda\geq32~\mu$m were calculated from the full two-dimensional spectrum, including mode multiplicity. The high-frequency exponent was fitted over $f\geq1/32~\mu\mathrm{m}^{-1}$. For the interrupted histories, a scale-redistribution contrast was defined as the median $\log_{10}[P(t)/P(0)]$ at $\lambda\geq32~\mu$m minus the corresponding median at $\lambda<32~\mu$m.
+
+Magnification sensitivity was assessed with specimen-paired pre/post 10$\times$ and 50$\times$ maps at 530~MPa ($n=25$). Centered $192\times192~\mu\mathrm{m}^2$ fields were compared at native sampling and after resampling to $1~\mu$m over the common $1/192$--$0.362~\mu\mathrm{m}^{-1}$ band. Because the Vickers fiducial dominates the smaller centered 50$\times$ field, the fiducial-excluded comparison used four independently plane-leveled $64\times64~\mu\mathrm{m}^2$ peripheral patches per map. Power was integrated over 32--64 and 2.76--32~$\mu$m wavelength bands; the identical patch and sampling operator was applied to all four 530~MPa RVEs.
+
+Estimator robustness was evaluated in five paired cohorts using eight prespecified one-factor settings: $256\times128~\mu\mathrm{m}^2$ primary, $128\times128~\mu\mathrm{m}^2$, and $256\times256~\mu\mathrm{m}^2$ footprints; plane or quadratic detrending; Hann or Tukey tapering; 12, 17, or 24 radial bins; and native-Nyquist or $12~\mu$m shortest-wavelength limits.
+
+The ACF was computed by zero-padded convolution. At each offset, covariance was divided by the number of overlapping pixel pairs before normalization by the zero-lag covariance, avoiding circular wraparound. Radial ACF was evaluated to $64~\mu$m and the $1/e$ crossing was linearly interpolated. Directional ACFs were also retained, but radial measures are primary because the available profilometry metadata do not independently encode loading-axis orientation.
+
+The spatial implementation was verified with an analytic plane-plus-cosine field. Plane removal left a maximum residual below $5\times10^{-14}~\mu$m, integrated periodogram power agreed with the taper-weighted mean square to floating-point precision, the imposed $32~\mu$m wavelength was recovered exactly by the spectral median, and the overlap-corrected axial ACF gave a $1/e$ length of $5.98~\mu$m compared with the analytic $6.08~\mu$m value.
+
+\subsection{Statistical analysis}
+
+The interrupted $\Delta S_a$--strain slopes were fitted through the origin after specimen-level baseline subtraction, using every nonbaseline time. Confidence intervals were obtained by resampling whole specimen histories. Uninterrupted endpoint means and intervals were likewise bootstrapped over specimens or DIC regions, with no inferred cross-modality pairing. Paired spectral changes were summarized by specimen medians and 20,000-resample bootstrap intervals; two-sided Wilcoxon signed-rank tests were adjusted jointly by the Holm method. A linear exploratory model predicted strain from $\Delta S_a$ and applied stress under leave-one-specimen-out and leave-one-experiment-out validation. Experimental curves show specimen summaries and bootstrap intervals. Numerical curves show RVE medians and interquartile ranges. Spatial persistence and field coupling were quantified with Spearman rank correlation, and normalized roughness--strain coupling was summarized by $R^2$ and a constrained power exponent $\beta$.
+\fi
+\FloatBarrier
+
+\section{Results}
+
+\subsection{Roughness--creep relationship}
+
+Figure~\ref{fig:interrupted_roughness_creep} contains 18 specimens and 126 paired surface-time observations. Fits through the origin after specimen-level baseline subtraction give the results in Table~\ref{tab:interrupted_coupling}. The 525 and 575~MPa specimen-bootstrap intervals exclude zero, whereas the 475~MPa interval crosses zero. Applying the section-level sensitivity filter while retaining median aggregation changes the slopes to 0.102, 0.345, and $0.228~\mu$m/\%, respectively, without changing this inference. Across all six candidate section grids, the median endpoint change remained positive for the 525 and 575~MPa interrupted cohorts and the 500 and 530~MPa uninterrupted cohorts; only the unresolved 475~MPa response changed sign. The decrease from the 525 to 575~MPa slope shows that a single stress-independent conversion between roughness and strain is not supported.
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Specimen-level coupling in the polished interrupted experiments. Final strain is the reconstructed population target; slope intervals resample complete specimen histories.}
+\label{tab:interrupted_coupling}
+\begin{tabular}{lrrrr}
+\hline
+Condition & $n$ & Final strain (\%) & Final $\Delta S_a$ ($\mu$m) & Slope [95\% CI] ($\mu$m/\%) \\
+\hline
+475 MPa & 6 & 0.330 & 0.025 & 0.101 [$-0.067$, 0.214] \\
+525 MPa & 6 & 3.898 & 1.305 & 0.346 [0.311, 0.385] \\
+575 MPa & 6 & 13.449 & 3.175 & 0.257 [0.233, 0.286] \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figs/experimental_roughness_creep.pdf}
+    \caption{Relationship between surface roughness accumulation and creep
+    deformation in polished interrupted tests. (a) Change in arithmetic mean
+    roughness, $\Delta S_a=S_a(t)-S_a(0)$, versus time. (b) The same
+    change versus the reconstructed population strain target. Curves
+    show specimen-mean roughness and 95\% whole-specimen bootstrap intervals.
+    Each surface value is the median of eight independently plane-levelled
+    regions; no section rejection is used in the primary result.}
+    \label{fig:interrupted_roughness_creep}
+\end{figure}
+
+The resolved histories are not proportional relationships between roughness
+and strain. Fits of
+\begin{equation}
+\Delta S_a=K\epsilon_c^\beta
+\end{equation}
+give $\beta=0.748$ (95\% specimen-bootstrap interval 0.634--0.882,
+log-space $R^2=0.997$) at 525~MPa and $\beta=0.477$ (0.396--0.586,
+$R^2=0.989$) at 575~MPa. Both intervals lie below the proportional value
+$\beta=1$, and the 575~MPa interval lies entirely below the 525~MPa point
+estimate. By approximately one-third of endpoint strain, the 525 and
+575~MPa surfaces have already accumulated 39\% and 58\% of their endpoint
+roughness change, respectively (Fig.~\ref{fig:roughening_kinetics}). The
+surface response is therefore front-loaded: subsequent creep amplifies relief
+more slowly than the bulk strain accumulates. The 475~MPa mean history is
+not included because its endpoint $\Delta S_a$ is not resolved from zero.
+
+The numerical 525~MPa boundary also develops roughness early relative to its
+strain, while the uninterrupted 530~MPa experiment supplies only its initial
+and final surface states. Figure~\ref{fig:roughening_kinetics} therefore
+compares the resolved 525~MPa trajectory with the numerical trajectory and
+shows the 530~MPa endpoint without implying an unmeasured intermediate path.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figs/experimental_roughening_kinetics.pdf}
+    \caption{Roughness development relative to strain. (a) Mean interrupted
+    roughness and reconstructed strain normalized by their respective
+    endpoints for the resolved 525 and 575~MPa histories. The dashed diagonal
+    denotes proportional accumulation.
+    (b) Normalized 525~MPa experimental and numerical roughness versus strain,
+    together with the two available 530~MPa uninterrupted states. The
+    comparison shows that roughness develops disproportionately early in both
+    the experiment and the solid-boundary calculation.}
+    \label{fig:roughening_kinetics}
+\end{figure}
+
+The complete stress response is shown in
+Fig.~\ref{fig:endpoint_load_response}. A common three-parameter monotone curve
+was fitted to the load-group means,
+\begin{equation}
+y(\sigma)=A\left\{\exp\left[B\max(\sigma-\sigma_c,0)\right]-1\right\},
+\end{equation}
+where $\sigma_c$ is an empirical onset within the tested stress interval, not
+a measured material threshold. The strain fit spans all six interrupted and
+uninterrupted conditions and has an RMSE of 0.336 strain-percentage points
+($R^2=0.997$). Its leave-one-load-out RMSE is 0.56 points, showing that the
+ordered increase is not produced by a single terminal observation.
+
+The roughness fit uses the five conditions with acquisition-valid paired
+baselines. Its RMSE is $0.157~\mu$m ($R^2=0.979$), but the
+leave-one-load-out RMSE increases to $0.45~\mu$m. The largest signed residuals
+occur for the neighboring 525 and 530~MPa conditions: the interrupted value is
+$0.264~\mu$m above the curve and the uninterrupted value is $0.228~\mu$m
+below it. Thus endpoint roughness has a strong monotone stress dependence, but
+the protocol offset and sparse load set do not support treating the fitted
+curve as a universal constitutive relation.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figs/experimental_endpoint_load_response.pdf}
+    \caption{Endpoint response to applied stress. (a) Reconstructed strain
+    target and whole-specimen 95\% bootstrap interval for all six conditions.
+    (b) Specimen endpoint roughness change, load-group mean, and 95\%
+    specimen-bootstrap interval. The monotone fit uses the five conditions
+    with comparable paired baselines; the 588~MPa condition is omitted because
+    its baseline surface condition differs from the other uninterrupted
+    scans. Lines summarize the observed ordering and are not constitutive
+    laws.}
+    \label{fig:endpoint_load_response}
+\end{figure}
+
+Increasing uninterrupted stress from 500 to 530~MPa raises target endpoint
+strain from 0.940\% (95\% interval 0.861--1.029\%) to 3.518\%
+(3.402--3.636\%) and mean $\Delta S_a$ from $0.393~\mu$m
+(0.330--0.467~$\mu$m) to $0.963~\mu$m (0.863--1.069~$\mu$m).
+The corresponding factors of 3.7 and 2.5 provide a handling-free load-level
+check on the interrupted result. Because the available metadata do not
+translate DIC ordinals to physical profilometry IDs, this comparison is at
+the load-group level rather than between registered specimens.
+
+\FloatBarrier
+\subsection{Spatial redistribution and observation sensitivity}
+
+The uninterrupted maps show that creep changes spatial organization as well as scalar amplitude. At 500~MPa, specimen-median RMS height increases from 0.220 to $0.582~\mu$m, spectral median wavelength from 45.1 to $71.0~\mu$m, the fraction of resolved power at $\lambda\geq32~\mu$m from 0.592 to 0.823, and radial ACF $1/e$ length from 13.82 to $20.24~\mu$m. The paired median wavelength change is $+26.3~\mu$m (95\% bootstrap interval 16.66--33.27~$\mu$m; Holm-adjusted $p=2.45\times10^{-5}$), and the ACF-length change is $+6.44~\mu$m (5.70--7.48~$\mu$m; $p=2.47\times10^{-5}$).
+
+The 530~MPa evolution is stronger. RMS height increases from 0.519 to
+$1.390~\mu$m, spectral median wavelength from 20.3 to $57.2~\mu$m,
+long-wavelength power fraction from 0.324 to 0.700, and ACF length from 4.99
+to $14.82~\mu$m. The paired wavelength change is $+34.5~\mu$m
+(28.30--37.00~$\mu$m; Holm-adjusted $p=7.15\times10^{-7}$), and the ACF
+change is $+8.82~\mu$m (8.18--9.76~$\mu$m;
+$p=7.15\times10^{-7}$). At both loads, power grows preferentially at low
+frequency and the high-frequency exponent becomes more negative by
+approximately 0.45. Fine-scale relief is therefore not removed; its
+contribution grows more slowly than the broad features that increasingly
+dominate the surface. The field-inconsistent 588~MPa baselines do not enter
+the primary PSD/ACF evolution analysis.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figs/uninterrupted_spectral_evolution.pdf}
+    \caption{Paired spectral and correlation evolution at 500 and 530~MPa.
+    (a,b) PSD gain,
+    $g(f)=\log_{10}[P_f(f)/P_0(f)]$.
+    (c,d) Change in normalized radial autocorrelation,
+    $\Delta\rho(r)=\rho_f(r)-\rho_0(r)$.
+    Curves are specimen-paired medians with interquartile bands.}
+    \label{fig:uninterrupted_spectral_evolution}
+\end{figure}
+
+The directional broadband result is robust to the declared observation
+choices. Across all five paired cohorts and eight settings, long--short
+PSD-gain contrast and long-wavelength power-fraction change remain positive,
+ACF length change remains positive, and the high-frequency exponent change
+remains negative. Spectral median wavelength is less stable: its sign is
+retained under 7/8 settings for interrupted 525~MPa and 8/8 elsewhere.
+Broadband redistribution, rather than a single median wavelength, is
+therefore the more defensible spatial descriptor. The interrupted 475~MPa
+cohort shows the same directional spatial changes even though its scalar
+roughness--strain slope remains unresolved.
+
+The normalized radial ACF, $\rho(r)$, begins at unity and measures the
+similarity of heights separated by radial distance $r$. Its $1/e$ crossing is
+the first distance at which $\rho$ falls to $e^{-1}=0.368$ and is reported as
+a characteristic correlation-decay length. It is not a PSD wavelength and
+does not set the short-wavelength cutoff. The later first-zero crossing marks
+the end of positive height correlation and provides the independent
+upper-scale support check used in Section~2.3.
+
+The endpoint comparison in Fig.~\ref{fig:experimental_simulation_psd_acf}
+separates correlation length from spectral allocation. Experimental ACF
+$1/e$ lengths span 14.75--20.21~$\mu$m, whereas the simulations span the
+narrower 20.15--21.06~$\mu$m range. Five of six numerical values lie within
+3.90~$\mu$m of experiment; the largest difference is 5.39~$\mu$m at
+uninterrupted 530~MPa. The ACF therefore captures the magnitude of the dominant
+lateral correlation scale. The normalized PSD does not show equivalent
+agreement. Within the retained $4.13$--$60.87~\mu$m band, experiment--model
+log-PSD RMSE ranges from 0.71 to 1.43 decades, with the model systematically
+depleted at short wavelength. Moreover, the mean pairwise inter-load
+log-PSD separation is 0.329 and 0.316 decades in the interrupted and
+uninterrupted experiments but only 0.061 decades in either simulation set.
+The periodic solid calculation consequently produces an almost
+load-invariant normalized morphology: it recovers an overall correlation
+length while missing both fine-scale power and much of the experimental
+load-to-load spectral diversity.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/experimental_simulation_psd_acf.pdf}
+    \caption{Endpoint spatial organization in all six experiments and
+    corresponding solid-boundary simulations. (a,b) Radial PSD normalized to
+    unit resolved power. The gray region is the experimentally retained
+    $4.13$--$60.87~\mu$m wavelength band. (c,d) Radial ACF; the horizontal
+    dotted line marks $1/e$. Experimental curves are solid and numerical
+    curves are dashed. Numerical curves average the two unique orthogonal
+    longitudinal boundary planes; opposite periodic faces are duplicates and
+    are not counted separately. The 588~MPa curve is its acquisition-valid
+    post-test endpoint and is not a pre/post evolution result.}
+    \label{fig:experimental_simulation_psd_acf}
+\end{figure}
+
+The paired objectives separate a robust evolution result from operator-dependent absolute spectra. In fiducial-excluded peripheral patches at 530~MPa, the post/pre long-minus-short PSD-gain contrast is positive in 21/25 specimens at 10$\times$ and 25/25 at 50$\times$. The median contrasts are 0.296 decades (0.223--0.492; Holm-adjusted $p=4.17\times10^{-6}$) and 0.906 decades (0.702--1.118; $p=1.79\times10^{-7}$), respectively. The corresponding post-test fractions of resolved 2.76--32~$\mu$m power are 0.749 at 10$\times$ and 0.477 at 50$\times$. Thus both objectives reproduce preferential broad-feature growth, but the absolute spectral allocation is objective dependent.
+
+\FloatBarrier
+\subsection{Representative morphology and slip evolution}
+
+The 575~MPa interrupted condition provides the clearest repeated-field
+comparison without using the unreliable 588~MPa baseline. Specimen 32c,
+window 31, minimizes the mean percentile distance to the cohort medians in
+endpoint $\Delta S_a$, normalized PSD shape, and ACF shape; it was not chosen
+by visual inspection. Figure~\ref{fig:height_evolution} compares that fixed
+experimental window with the corresponding numerical boundary footprint. The
+experimental endpoint RMS height is $3.376~\mu$m and the numerical endpoint
+RMS displacement is $0.482~\mu$m. Each row is divided by its own endpoint RMS,
+so the shared color scale displays development and morphology without
+asserting absolute-amplitude agreement.
+
+Most experimental contrast appears by the first 5.25-h interruption, after
+which broad positive and negative regions remain the dominant visual scale.
+The numerical boundary likewise establishes its broad pattern early and
+primarily increases its contrast thereafter. Because the microscope field
+was repositioned at each interruption, individual ridges are not tracked
+between experimental panels; the sequence instead shows the population-scale
+development of broad relief.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/experimental_simulation_height_evolution.pdf}
+    \caption{Representative 575~MPa height-field evolution. (a) Plane-levelled
+    experimental height in specimen 32c, window 31. (b) Plane-levelled normal
+    displacement on the numerical $x$ boundary. The experimental and
+    numerical endpoint RMS amplitudes are 3.376 and $0.482~\mu$m,
+    respectively, so each row is divided by its endpoint RMS to compare
+    morphology development on a common normalized scale.}
+    \label{fig:height_evolution}
+\end{figure}
+
+The accumulated-slip fields explain why the numerical morphology changes
+mainly by amplification (Fig.~\ref{fig:slip_evolution}). Between 5.20 and
+353.28~h, the slip-field rank correlation is 0.978 and 87.3\% of cells in the
+early top decile remain in the final top decile. The localization index,
+$\langle\Gamma^2\rangle/\langle\Gamma\rangle^2$, decreases only from 1.052
+to 1.042 while median accumulated slip increases from 0.255 to 0.404.
+Consequently, the late hold does not create a new hotspot population; it
+amplifies a spatial template selected during the early transient and weakly
+broadens the participating area.
+
+Accumulated slip co-localizes with equivalent plastic strain
+($\rho=0.74$--0.78 after the initial state), but not with the magnitude of
+normal boundary displacement ($\rho=0.03$--0.04). Roughness is therefore not
+a pointwise surrogate for total slip. The boundary relief instead reflects
+the compatibility of heterogeneous slip among neighboring grains, which is
+consistent with the persistent broad displacement pattern and the failure of
+the solid model to reproduce the experimental short-wavelength PSD.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/simulated_slip_evolution.pdf}
+    \caption{Accumulated slip on the paired 575~MPa numerical $x$ boundary.
+    (a--c) Spatial fields at the three nonzero retained states; one absolute
+    color scale is used throughout. (d) Surface median and 10th--90th
+    percentiles versus time. (e) The same distribution versus simulated strain.
+    Spatial ranks and early hotspots persist while the magnitude increases.}
+    \label{fig:slip_evolution}
+\end{figure}
+
+\FloatBarrier
+
+\section{Discussion}
+
+\subsection{What surface roughness indicates}
+
+The interrupted and uninterrupted datasets answer different parts of the indicator question. Repeated interrupted measurements resolve longitudinal amplitude but may include handling, unloading, repositioning, and reloading effects. Uninterrupted tests remove those cycles and independently reproduce the load ordering of strain and roughness growth. Their paired surface maps also show that creep shifts power preferentially toward broad features. Agreement between these designs supports a baseline-to-follow-up indicator without implying that a single terminal roughness value determines strain across loads.
+
+Baseline information is essential because the 500 and 530~MPa cohorts begin with markedly different spectra. Creep changes both amplitude and lateral organization: RMS height rises, long-wavelength power grows preferentially, and ACF length increases. These directions survive all eight estimator settings and both microscope objectives, whereas the magnitude of spectral allocation does not. A practical indicator should therefore combine an amplitude change such as $\Delta S_a$ with a baseline-referenced broadband redistribution measure. Spectral median wavelength alone is less defensible because its sign is estimator sensitive in one cohort.
+
+The sublinear exponents add a temporal constraint to that indicator. A fixed
+increment of roughness does not represent a fixed increment of strain:
+roughening efficiency is largest during the early transient and declines as
+the hold proceeds. The decline is stronger at 575~MPa, even though its
+absolute roughness change is larger. This behavior is consistent with early
+selection of heterogeneous deformation paths followed by continued slip on
+that established network. It also explains why endpoint amplitude alone
+cannot distinguish histories that reach similar $S_a$ by different stress
+paths. Repeated measurements supply information not contained in a single
+terminal map.
+
+The stress dependence of the experimental slopes and the degradation from specimen-held-out to load-held-out prediction prevent a universal conversion from roughness to strain. Additional independent builds, geometries, surface preparations, registered DIC/profilometry identifiers, and load histories are required before roughness can be used as a quantitative creep-state estimator. The present result is an association within the tested material and stress window, not a lifetime model.
+
+\subsection{Model scope and limitations}
+
+The numerical observation has a narrower interpretation than the experimental
+surface measurement. The periodic solid boundary is not traction free, so its
+normal displacement cannot be compared to profilometry as an absolute height
+field. Plane levelling, baseline subtraction, normalization, and identical
+spatial operators permit tests of relative amplitude, wavelength
+redistribution, and field persistence, but agreement in any one of these
+quantities does not establish a free-surface prediction. The $4~\mu$m
+calibration ensemble and $1~\mu$m production representation also require the
+grain-size strengthening term to be expressed on a consistent physical length
+scale, as specified in the Methods.
+
+The numerical comparison identifies a more specific shortfall than an
+amplitude mismatch. Its ACF decay is close to the measured endpoint
+correlation scale, and its slip and displacement patterns are highly
+persistent. However, its normalized PSD is too concentrated at long
+wavelength and changes little among loads. The missing short-wavelength power
+cannot be repaired by multiplying displacement by a scalar. It points instead
+to physics or boundary conditions that create fine relief in the experiment
+but are absent from a periodic solid plane, including a traction-free surface,
+surface-grain relaxation, and experimentally present subgrain-scale
+heterogeneity. The near-zero pointwise correlation between accumulated slip
+and displacement magnitude further shows that a local slip-amplitude rule is
+insufficient; compatibility and slip gradients must enter any free-surface
+extension.
+
+Experimental limitations include a single coupon geometry and build condition,
+no spatial registration of pre/post profilometry, incomplete uninterrupted
+cross-modality identifiers, no independent acquisition-axis metadata, and
+incomplete and field-inconsistent pre-test profilometry at 588~MPa. Large
+between-specimen bands are retained because they quantify real population
+heterogeneity and observed missingness; local windows are never promoted to
+independent specimens to make those bands artificially smaller. The
+$1~\mu$m, eight-cell production reconstruction resolves the EBSD section
+statistics and the retained experimental roughness band. The two unregistered
+EBSD sections do not identify the joint three-dimensional distribution of
+grain shape and orientation, however. These limitations preclude a unique
+local slip mechanism or a transferable roughness-based life prediction.
+
+\section{Conclusions}
+
+Surface roughness contains a reproducible but non-proportional record of
+room-temperature creep in LPBF 316L stainless steel. Interrupted 525 and
+575~MPa tests resolve nonzero longitudinal roughness--strain slopes, whereas
+the 475~MPa response remains within low-load scatter. Exponents of 0.748 and
+0.477 show that roughness develops disproportionately early and becomes more
+front-loaded at higher stress. Uninterrupted 500 and 530~MPa tests
+independently confirm increasing roughness, spectral wavelength,
+long-wavelength power fraction, and ACF length. Baseline-referenced amplitude,
+broadband redistribution, and measurement history are therefore
+complementary indicators, but the available data do not define a
+stress-independent or externally validated roughness-to-strain calibration.
+
+The EBSD-informed reconstruction reproduces the measured median section
+diameters and aspect ratios while preserving the specimen coordinate frame.
+Forward sectioning is essential because the two-dimensional diameter, shape,
+and neighbor distributions are not direct three-dimensional statistics. The
+remaining plane-specific shape differences and the absence of registered
+three-dimensional EBSD constrain subsequent local-field interpretation.
+
+The experimentally retained $4.13$--$60.87~\mu$m band defines a
+$128\times128~\mu\mathrm{m}^2$ lateral numerical domain and $1~\mu$m sampling
+without equating microscope resolution with a physical roughness cutoff.
+Forward-sectioned EBSD statistics and three deterministic calibration
+realizations provide the microstructural and mechanical baseline for spatial
+comparison. The solid-boundary simulations reproduce the experimental
+correlation-length scale and show that slip hotspots are selected early and
+persist, but their PSDs contain too little short-wavelength power and too
+little load-to-load diversity. A traction-free surface treatment, registered uninterrupted
+measurements, additional builds and surface preparations, and
+three-dimensional microstructural characterization remain necessary before
+translating these associations into a transferable creep-state or lifetime
+predictor.
+
+\appendix
+
+\section{Experimental procedure and data processing}
+\label{app:experimental_processing}
+
+\subsection{Specimen, loading, and measurement geometry}
+
+The Renishaw AM400 build used a $50~\mu$m layer thickness, $110~\mu$m hatch
+spacing, 200~W interior laser power, $0.75~\mathrm{m\,s^{-1}}$ scan speed, and
+a meander pattern. Two border passes used 110~W and
+$0.2~\mathrm{m\,s^{-1}}$. The multi-gauge specimen dimensions, serial loading
+fixture, and build parameters are summarized in
+Fig.~\ref{fig:experimental_setup}. DIC images were acquired with 12.3-MP
+monochrome FLIR Grasshopper~3 cameras and processed with VIC-2D. The first
+image after loading was the DIC reference, so reported strain excludes
+elastic loading and inelastic strain accumulated during the loading ramp.
+Profilometry used a Keyence VK-X3000; native lateral spacings were
+$1.380~\mu$m at 10$\times$ and $0.278~\mu$m at 50$\times$, with
+$768\times1024$ height samples per export.
+
+\subsection{DIC target reconstruction}
+
+Let $\epsilon_{s,i}$ be the measured strain of specimen $s$ at time $i$ and
+$\mathcal{S}_i$ the specimens finite at both ends of interval $i$. The
+composition-stable population increment is
+\begin{equation}
+\Delta\bar{\epsilon}_i =
+\frac{1}{|\mathcal{S}_i|}
+\sum_{s\in\mathcal{S}_i}
+\left(\epsilon_{s,i}-\epsilon_{s,i-1}\right),
+\end{equation}
+and the target history is accumulated from these increments. Cross-reset
+increments following 0.25, 1.25, 5.25, 21.25, and 85.25~h are zeroed in the
+interrupted data. The smooth target is
+\begin{equation}
+\widehat{\epsilon}(t)=
+\sum_{k=1}^{24} a_k
+\left[1-\exp\left(-t/\tau_k\right)\right]+bt,
+\qquad a_k\geq0,\quad b\geq0,
+\end{equation}
+where the fixed $\tau_k$ span 20~s to three experiment durations. The fit is
+rescaled to the paired-increment endpoint. The target is continuous,
+monotone, and has a non-increasing transient rate plus a linear asymptote; it
+does not insert terminal acceleration to replace an unobserved specimen tail.
+
+The endpoints are 0.330, 3.898, and 13.449\% for the interrupted 475, 525,
+and 575~MPa targets and 0.940, 3.518, and 18.111\% for the uninterrupted 500,
+530, and 588~MPa targets. Their whole-specimen bootstrap 95\% intervals are
+0.271--0.434, 3.714--4.111, 12.946--14.287, 0.861--1.029, 3.402--3.636, and
+16.779--19.319\%, respectively. Figure~\ref{fig:strain_reconstruction}
+separates changes caused by cohort composition and DIC resets from the final
+smoothing step.
+
+\subsection{Height-map validity, sectioning, and levelling}
+
+Every CSV was required to have the recorded XY calibration, exactly
+$768\times1024$ height values, a missing fraction no greater than $10^{-4}$,
+and no connected missing region larger than one pixel. Isolated one-pixel
+export gaps were nearest-neighbor filled. All 444 maps passed; 31 contained
+one filled pixel.
+
+The native 10$\times$ map was divided into a $2\times4$ grid, and each
+$384\times256$-pixel ($530\times353~\mu\mathrm{m}^2$) section was independently
+plane levelled. The map statistic was the median section $S_a$. This operator
+was the only tested partition to provide at least eight subsamples, a short
+side spanning ten times the conservative 95th-percentile ACF $1/e$ length
+($31.55~\mu$m), and at least 50 circular correlation areas. It provides 59.9
+correlation areas and 11.2 correlation lengths on the short side. The median
+relative bootstrap standard error is 15.7\%.
+
+A modified-z section screen based on both $S_a$ and maximum absolute height
+was evaluated but not used. It removed 226 of 1808 sections and preferentially
+selected high-relief material: rejected and retained median $S_a$ values were
+2.010 and $0.528~\mu$m. Four maps lost all sections. With all acquisition-valid
+sections retained, the leave-one-section-out change of the map median is 2.8\%
+at the median and 13.6\% at the 95th percentile. Figure~\ref{fig:method_selection}
+reports the complete selection and sensitivity result.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figs/experimental_method_selection.pdf}
+    \caption{Sectioning and response-screen sensitivity. (a) Physical
+    eligibility ratios for each partition: correlation area, short-side
+    length, and number of sections are divided by their required minima. The
+    dashed line at $10^0=1$ is the pass threshold, and only the $2\times4$
+    partition satisfies all three criteria. (b) Distribution of map $S_a$
+    relative to the selected-grid value; ratios below one show the progressive
+    removal of long-scale form by finer levelling. (c) Endpoint changes under
+    median and mean aggregation and under the two modified-z screens. The
+    primary result is the median of all acquisition-valid sections.}
+    \label{fig:method_selection}
+\end{figure}
+
+\subsection{Retained roughness bandwidth and numerical domain}
+
+The lower cutoff is not the microscope resolution. For each specimen and
+frequency annulus, the paired evolution measure was
+\begin{equation}
+g(\lambda)=\log_{10}\left[C_f(\lambda)/C_0(\lambda)\right].
+\end{equation}
+The shortest retained annulus required the lower 95\% bootstrap bound on $g$
+to exceed zero independently in the interrupted and uninterrupted groups.
+This first occurs at $\lambda_{\min}=4.126~\mu$m; both intervals include zero
+at the next shorter annulus, $3.406~\mu$m.
+
+The upper cutoff was determined by repeating the paired PSD calculation with
+the $2\times4$ and $4\times8$ levelling operators on the same specimens.
+A candidate required, in each protocol, an absolute median fine-minus-primary
+change no greater than 0.10 decades and a 95\% interval containing zero. It
+also could not exceed the pooled 95th percentile of the endpoint ACF first-zero
+crossing, $77.103~\mu$m. The largest passing annulus is
+$\lambda_{\max}=60.871~\mu$m. At this wavelength the interrupted and
+uninterrupted median section effects are 0.089 and 0.037 decades, with
+intervals $[-0.036,0.222]$ and $[-0.038,0.084]$. The wide interrupted
+interval limits precision but does not manufacture acceptance: the next
+annulus, $77.131~\mu$m, has a consistently signed section effect and fails.
+
+Native 50$\times$ fields were antialias-filtered and resampled to candidate
+spacings. A $1~\mu$m grid is the coarsest tested grid providing four cells
+across $\lambda_{\min}$; its median absolute final/initial spectral-gain error
+is 0.007 decades and final-PSD error is 0.013 decades. A periodic lateral
+domain must contain two copies of $\lambda_{\max}$ so the upper wavelength is
+not represented only by the fundamental mode. Thus
+$L\geq2\lambda_{\max}=121.74~\mu$m, rounded upward to $128~\mu$m. The retained
+band, section-scale check, ACF evidence, and resolution test are shown in
+Figs.~\ref{fig:bandwidth} and \ref{fig:bandwidth_method}.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.99\linewidth]{figs/experimental_roughness_bandwidth_method.pdf}
+    \caption{Supporting evidence for the retained
+    $4.13$--$60.87~\mu$m band. (a,b) The same 10$\times$ height map partitioned
+    into the selected $2\times4$ fields and the finer $4\times8$ fields used
+    for the levelling-scale sensitivity test. (c) Four
+    $64\times64~\mu\mathrm{m}^2$ 50$\times$ fields used for the resolution
+    test; the central Vickers indent is excluded. (d) Empirical cumulative
+    distributions of specimen ACF first-zero and $1/e$ distances for the two
+    protocols. The $1/e$ distance measures correlation decay, whereas the
+    first zero bounds the extent of positive height correlation. The retained
+    $\lambda_{\max}=60.871~\mu$m lies below the pooled 95th-percentile
+    first-zero distance and passes the paired section-scale test; the next
+    annulus at $77.131~\mu$m fails that test.}
+    \label{fig:bandwidth_method}
+\end{figure}
+
+The 588~MPa pre-test maps contain directional grinding relief, do not resolve
+the intended fiducial, and have a median $S_a$ 10.5 and 4.9 times the 500 and
+530~MPa baselines. Only 14 specimen identifiers form pre/post pairs. These
+maps are retained in the common directory layout and in scalar sensitivity
+outputs, but they do not enter cross-load or paired PSD/ACF inference.
+
+\section{EBSD treatment and synthetic microstructure}
+\label{app:microstructure}
+
+The $XY$ and $YZ$ maps cover $256.2\times204.05~\mu\mathrm{m}^2$ at
+$0.35~\mu$m spacing. CI thresholds are 0.10 in both planes and IQ thresholds
+are 14000 and 12000. Bad-data and neighbor-correlation misorientation
+tolerances are $3^\circ$ for $XY$ and $5^\circ$ for $YZ$; grain-growth
+tolerances are $1.5^\circ$ and $6^\circ$. Both planes use a 16-pixel minimum
+segmented feature and two-neighbor minimum. A temporary two-pixel in-plane
+closing bridges the dominant $YZ$ scratch during segmentation; the measured
+defect mask is restored afterward. Cleanup uses only the two physical image
+directions. Feature ID zero, inactive phases, and edge-intersecting grains do
+not enter the merged morphology statistics.
+
+Production realizations are periodic in all directions and use a corrected
+two-pass procedure: DREAM.3D first samples geometry; measured $XY$ and $YZ$
+major-axis projections then replace the sampled shape orientations in a
+realization-specific feature description; the fixed realization is rasterized;
+and crystallographic orientations are assigned separately from the merged ODF
+and MDF. Figure~\ref{fig:ebsd_dream3d} shows the measured IQ fields, accepted
+segmentations, and a section through the merged-statistics microstructure.
+
+The three final calibration fields contain 1638, 1546, and 1534 grains; the
+three production fields contain 1508, 1520, and 1553 grains. Counts are unique
+positive feature IDs in the final orientation-corrected DREAM.3D fields after
+the second rasterization, rather than counts from the provisional sampled
+fields. Table~\ref{tab:realized_grain_counts} summarizes the two ensembles.
+Lim et al.\ found that approximately 1000 or more grains were required to
+reduce the realization-to-realization standard deviation of uniaxial stress
+to about 1~MPa at 10\% strain in morphology-bearing polycrystals, and
+concluded that an order of $10^3$ grains is a practical uniaxial-response RVE
+guideline~\cite{lim2019rve}. The present counts exceed that bulk-response
+benchmark. The citation does not establish convergence of local surface
+fields; that requirement is instead addressed by the forward-section match
+and the experimental wavelength limits.
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Realized grain counts in the final orientation-corrected
+microstructures. Each ensemble contains three independent realizations.}
+\label{tab:realized_grain_counts}
+\begin{tabular}{lrrr}
+\hline
+Ensemble & Grid & Spacing ($\mu$m) & Mean grains [range] \\
+\hline
+Calibration & $32\times32\times64$ & 4 & 1573 [1534--1638] \\
+Production & $128\times128\times256$ & 1 & 1527 [1508--1553] \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Calibration and numerical analysis}
+\label{app:numerical}
+
+Two material parameterizations were retained: calibration~2 for the
+uninterrupted 500, 530, and 588~MPa experiments and calibration~3 for the
+interrupted 475, 525, and 575~MPa experiments. Calibration~2 used fixed cubic
+elastic constants; calibration~3 included the cubic constants in the fitted
+parameter set. Tables~\ref{tab:calibrated_common_parameters} and
+\ref{tab:calibrated_load_parameters} list the values used in the final
+calculations.
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Load-independent material parameters retained from calibrations 2 and 3. The two Hall--Petch rows distinguish the coefficient fitted on the calibration grid from the coefficient transferred to the production grid.}
+\label{tab:calibrated_common_parameters}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llrr}
+\hline
+Parameter & Units & Calibration 2, uninterrupted & Calibration 3, interrupted \\
+\hline
+$\tau_{0f}$ & MPa & 141.593 & 154.337 \\
+$\tau_{0b}$ & MPa & 126.056 & 146.376 \\
+$\tau_1$ & MPa & 2.858 & 14.711 \\
+$\theta_0$ & MPa & 2990.660 & 1005.130 \\
+$\theta_1$ & MPa & 891.677 & 398.338 \\
+$C_{11}$ & GPa & 206.000 & 197.506 \\
+$C_{12}$ & GPa & 133.000 & 150.224 \\
+$C_{44}$ & GPa & 119.000 & 114.655 \\
+$h_{\mathrm{HP}}^{\mathrm{cal}}$ & MPa\,$\mu$m$^{1/2}$ & 165.645 & 81.462 \\
+$h_{\mathrm{HP}}^{\mathrm{prod}}$ & MPa\,$\mu$m$^{1/2}$ & 331.290 & 162.925 \\
+$h_{\mathrm{self}}$ & -- & 1.000 & 1.000 \\
+$h_{\mathrm{latent}}$ & -- & 1.400 & 1.400 \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[pos=htbp]
+\centering
+\caption{Load-specific reference shear rate and rate sensitivity. The rate-sensitivity exponent is $n_{\mathrm{sr},x}$ and $m=1/n_{\mathrm{sr},x}$.}
+\label{tab:calibrated_load_parameters}
+\begin{tabular}{llrrr}
+\hline
+Calibration & Stress (MPa) & $\dot{\gamma}_{0,x}$ (s$^{-1}$) & $n_{\mathrm{sr},x}$ & $m$ \\
+\hline
+2, uninterrupted & 500 & $4.188\times10^{-6}$ & 40.577 & 0.025 \\
+2, uninterrupted & 530 & $3.161\times10^{-5}$ & 19.589 & 0.051 \\
+2, uninterrupted & 588 & $3.888\times10^{-3}$ & 9.492 & 0.105 \\
+3, interrupted & 475 & $4.917\times10^{-8}$ & 79.129 & 0.013 \\
+3, interrupted & 525 & $3.596\times10^{-4}$ & 42.908 & 0.023 \\
+3, interrupted & 575 & $1.450\times10^{-3}$ & 18.376 & 0.054 \\
+\hline
+\end{tabular}
+\end{table}
+
+The calibration Hall--Petch value is tied to grain diameters expressed on the
+$4~\mu$m calibration grid. Production evaluates the same grain-size term on
+$1~\mu$m grid. To preserve the Hall--Petch shift,
+$h_{\mathrm{HP}}/\sqrt{d_g}$, the production coefficient was set to
+$h_{\mathrm{HP}}^{\mathrm{prod}}=2h_{\mathrm{HP}}^{\mathrm{cal}}$. All other
+parameters transfer without grid scaling.
+
+For calibration~2, both $m$ and $\log_{10}\dot{\gamma}_{0,x}$ increase
+nearly linearly with applied stress ($R^2=1.000$ and 0.998;
+Fig.~\ref{fig:calibrated_load_dependence}). The connecting segments summarize
+the three independently calibrated values and do not prescribe
+intermediate-load behavior. Calibration~3 values are retained in
+Table~\ref{tab:calibrated_load_parameters} but omitted from the figure so the
+uninterrupted trend remains legible.
+
+\begin{figure}[pos=htbp]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figs/calibrated_load_dependence.pdf}
+    \caption{Stress dependence of the uninterrupted calibration-2 rate
+    parameters. (a) Rate sensitivity $m=1/n_{\mathrm{sr},x}$. (b) Reference
+    shear rate on a logarithmic ordinate. Symbols are independently calibrated
+    load-specific values; lines show their stress trend.}
+    \label{fig:calibrated_load_dependence}
+\end{figure}
+
+The calibration objective and ensemble-averaging order are defined in
+Section~2.5. A recorded loss is capped above at 2.000. Timed-out, failed, or
+incomplete candidates receive the cap; partial curves are not scored. The
+asynchronous search keeps eight candidates in flight, with nine six-thread
+simulations per three-load candidate.
+
+For a plane-levelled field $h$, the Hann-tapered periodogram is
+\begin{equation}
+P(k_x,k_z)=
+\Delta x\Delta z\,
+\frac{\left|\mathcal{F}\{w(h-\bar h)\}\right|^2}{\sum w^2}.
+\end{equation}
+Radial bins are physical-frequency annuli. The ACF uses zero-padded linear
+convolution and divides covariance by the number of overlapping pairs before
+zero-lag normalization. The numerical and experimental operators use the same
+physical frequency limits; upsampling experimental data never extends the
+native measurement bandwidth.
+
+\printcredits
+
+%% Loading bibliography style file
+\bibliographystyle{model1-num-names}
+%\bibliographystyle{cas-model2-names}
+
+% Loading bibliography database
+\bibliography{cas-refs}
+
+
+
+\end{document}
