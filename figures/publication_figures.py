@@ -46,14 +46,11 @@ from utils.config import (
     DATA_DIR,
     MICROSTRUCTURE_DIR,
     PROFILOMETRY_SPACING_UM,
-    RC_PARAMS,
+    RC_PARAMS as PROJECT_RC_PARAMS,
     RESULTS_DIR,
     VOXELSIZE,
 )
 from utils.data_utils import SimResults
-
-# The imported project style is the only global Matplotlib style source.
-mpl.rcParams.update(RC_PARAMS)
 
 PROJECT_ROOT = Path(DATA_DIR).resolve().parent
 OUTPUT_DIR = Path(RESULTS_DIR) / "publication_figures"
@@ -108,10 +105,17 @@ BRACKET_WIDTH_UM = 20.0
 ACF_CHANGE_BIN_WIDTH_UM = 2.0 * EXP_NATIVE_SPACING_UM
 ACF_CHANGE_MAX_LAG_UM = 128.0
 
-# Shared strain grouping used by the original spatial figures.
+# Shared strain grouping used by all strain-grouped spatial figures.  Adjacent
+# intervals are left-inclusive and right-exclusive, except for the final upper
+# bound, which is inclusive.
 INITIAL_TIME_TOL_H = 1.0e-8
 INITIAL_STRAIN_TOL_PERCENT = 0.05
-N_POSITIVE_STRAIN_GROUPS = 4
+STRAIN_GROUPS_PERCENT = (
+    (0.2, 1.2),
+    (1.2, 4.5),
+    (4.5, 22.0),
+)
+INITIAL_STRAIN_LEGEND_LABEL = r"$\varepsilon_{zz} = 0\%$"
 
 # Figure 6: retain the original four-panel axes and normalization while adding
 # one matched 256-by-128 um sectioning operator for both sources.
@@ -145,6 +149,7 @@ SIM_HEIGHTS_CACHE = CACHE_DIR / "sim_heights.npz"
 CACHE_MANIFEST = CACHE_DIR / "publication_cache_manifest.json"
 
 RC_PARAMS = {
+    **PROJECT_RC_PARAMS,
     "font.family": "serif",
     "font.size": 14.0,
     "axes.labelsize": 12.0,
@@ -170,8 +175,15 @@ RC_PARAMS = {
     "ps.fonttype": 42,
     "svg.fonttype": "none",
     "axes.grid": True,
+    "axes.grid.which": "both",
     "grid.alpha": 0.25,
+    "legend.frameon": False,
+    "figure.dpi": 150.0,
 }
+
+# Apply the publication style once, after the complete first-cell parameter
+# dictionary has been assembled.  Individual figures inherit these settings.
+mpl.rcParams.update(RC_PARAMS)
 
 
 def load_color(load_mpa: int | float) -> str:
@@ -182,6 +194,11 @@ def strain_group_colors(n_groups: int) -> np.ndarray:
     if n_groups < 1:
         return np.empty((0, 4))
     return mpl.colormaps["viridis"](np.linspace(0.18, 0.90, n_groups))
+
+
+def strain_group_legend_label(group_label: str) -> str:
+    interval = group_label.removesuffix("%")
+    return rf"$\varepsilon_{{zz}} = {interval}\%$"
 
 
 # %% [markdown]
@@ -1061,35 +1078,35 @@ def build_experimental_spatial_table(
 def positive_strain_groups(
     frame: pd.DataFrame,
 ) -> tuple[pd.DataFrame, list[str], dict[str, np.ndarray]]:
-    selected = frame[frame["bulk_z_strain_percent"] > INITIAL_STRAIN_TOL_PERCENT].copy()
-    if selected.empty:
-        raise ValueError("No positive-strain observations are available.")
-    quantiles = np.unique(
-        np.quantile(
-            selected["bulk_z_strain_percent"],
-            np.linspace(0.0, 1.0, N_POSITIVE_STRAIN_GROUPS + 1),
-        )
+    configured_groups = tuple(
+        (float(low), float(high)) for low, high in STRAIN_GROUPS_PERCENT
     )
+    if not configured_groups:
+        raise ValueError("STRAIN_GROUPS_PERCENT must contain at least one interval.")
+    for index, (low, high) in enumerate(configured_groups):
+        if low >= high:
+            raise ValueError(f"Invalid strain interval ({low}, {high}).")
+        if index and low < configured_groups[index - 1][1]:
+            raise ValueError("STRAIN_GROUPS_PERCENT intervals must not overlap.")
+
+    selected = frame.copy()
     labels: list[str] = []
-    palette = strain_group_colors(max(len(quantiles) - 1, 1))
+    palette = strain_group_colors(len(configured_groups))
     colors: dict[str, np.ndarray] = {}
     selected["strain_group"] = pd.NA
-    for index, (low, high) in enumerate(zip(quantiles[:-1], quantiles[1:])):
-        if index == len(quantiles) - 2:
-            mask = (selected["bulk_z_strain_percent"] >= low) & (
-                selected["bulk_z_strain_percent"] <= high
-            )
+    strain = selected["bulk_z_strain_percent"]
+    for index, (low, high) in enumerate(configured_groups):
+        if index == len(configured_groups) - 1:
+            mask = (strain >= low) & (strain <= high)
         else:
-            mask = (selected["bulk_z_strain_percent"] >= low) & (
-                selected["bulk_z_strain_percent"] < high
-            )
-        if not np.any(mask):
-            continue
-        label = rf"{low:.2g}--{high:.2g}%"
+            mask = (strain >= low) & (strain < high)
+        label = f"{low:g} - {high:g}%"
         selected.loc[mask, "strain_group"] = label
         labels.append(label)
         colors[label] = palette[index]
     selected = selected[selected["strain_group"].notna()].copy()
+    if selected.empty:
+        raise ValueError("No observations fall within STRAIN_GROUPS_PERCENT.")
     selected["strain_group"] = pd.Categorical(
         selected["strain_group"], categories=labels, ordered=True
     )
@@ -1155,7 +1172,7 @@ def plot_all_delta_sa_linear_fit(
 ) -> tuple[plt.Figure, dict[str, float | np.ndarray]]:
     """Port of the original pooled scatter/fit presentation at figures.py:8401."""
     fit = pooled_delta_sa_fit(exp_sa, sim_sa)
-    fig, ax = plt.subplots(dpi=150)
+    fig, ax = plt.subplots()
     ax.axhline(0, color="0.5", lw=0.8)
 
     # Preserve the original source markers while applying the requested load colors.
@@ -1192,19 +1209,16 @@ def plot_all_delta_sa_linear_fit(
     #     color="tab:red",
     #     linestyle="--",
     # )
-    # ax.set_xlabel("Strain [%]")
-    # ax.set_ylabel(r"$\Delta S_a$ [µm]")
     ax.set_xlabel(r"$\varepsilon_{zz}$ [%]")
     ax.set_ylabel(r"$\Delta S_a$ [$\mu$m]")
-    ax.grid(True, alpha=0.25)
     source_handles = [
-        Line2D([], [], color="black", marker="o", linestyle="None", label="Sim."),
-        Line2D([], [], color="black", marker="s", linestyle="None", label="Exp."),
+        Line2D([], [], color="black", marker="o", linestyle="None", label="Exp."),
+        Line2D([], [], color="black", marker="s", linestyle="None", label="Sim."),
     ]
-    ax.legend(handles=source_handles, fontsize=2)
+    ax.legend(handles=source_handles)
     fig.set_size_inches(fig.get_size_inches() * 1.35, forward=True)
     if save:
-        fig.savefig(OUTPUT_DIR / "01_all_delta_sa_linear_fit.png", bbox_inches="tight")
+        fig.savefig(OUTPUT_DIR / "01_all_delta_sa_linear_fit.png")
     return fig, fit
 
 
@@ -1223,7 +1237,7 @@ def plot_six_panel_delta_sa_vs_strain(
 ) -> plt.Figure:
     """Port of the final A--F publication block at figures.py:9024."""
     panel_labels = (("A", "B", "C"), ("D", "E", "F"))
-    fig, axes = plt.subplots(2, 3, dpi=150, sharex=False, sharey=False)
+    fig, axes = plt.subplots(2, 3, sharex=False, sharey=False)
     for row in range(2):
         for column in range(3):
             axis = axes[row, column]
@@ -1302,7 +1316,6 @@ def plot_six_panel_delta_sa_vs_strain(
 
             axis.axhline(0, color="0.5", lw=0.8)
             axis.set_title(f"{load} MPa {sample_type}")
-            axis.grid(True, alpha=0.25)
             axis.text(
                 0.03,
                 0.95,
@@ -1310,8 +1323,6 @@ def plot_six_panel_delta_sa_vs_strain(
                 transform=axis.transAxes,
                 ha="left",
                 va="top",
-                fontsize=12,
-                fontweight="bold",
             )
 
     for axis in axes[1, :]:
@@ -1344,15 +1355,12 @@ def plot_six_panel_delta_sa_vs_strain(
         handles=[exp_handle, sim_handle],
         loc="center left",
         bbox_to_anchor=(0.92, 0.5),
-        frameon=False,
-        fontsize=9,
     )
     fig.set_size_inches(fig.get_size_inches() * np.array([1.6, 1.35]), forward=True)
     fig.tight_layout(rect=[0.0, 0.0, 0.90, 1.0])
     if save:
         fig.savefig(
-            OUTPUT_DIR / "02_six_panel_exp_sim_delta_sa_vs_strain.png",
-            bbox_inches="tight",
+            OUTPUT_DIR / "02_six_panel_exp_sim_delta_sa_vs_strain.png"
         )
     return fig
 
@@ -1374,13 +1382,15 @@ def plot_radial_psd_and_gain_by_strain(
     positive, positive_labels, positive_colors = positive_strain_groups(spatial)
     groups: list[tuple[str, str, pd.DataFrame, object]] = []
     if not initial.empty:
-        groups.append(("initial", r"initial, $\epsilon_p \approx 0$", initial, "black"))
+        groups.append(("initial", INITIAL_STRAIN_LEGEND_LABEL, initial, "black"))
     for index, label in enumerate(positive_labels):
         group = positive[positive["strain_group"] == label]
+        if group.empty:
+            continue
         groups.append(
             (
                 f"group_{index + 1}",
-                rf"$\epsilon_p$ = {label}",
+                strain_group_legend_label(label),
                 group,
                 positive_colors[label],
             )
@@ -1493,13 +1503,12 @@ def plot_radial_psd_and_gain_by_strain(
                 mean_curve[valid][order],
                 color=color,
                 lw=2.3,
-                label=f"{result['label']} mean, n={result['n']}",
+                label=result["label"],
             )
     ax_psd.set_xlim(RADIAL_WAVELENGTH_MIN_UM, RADIAL_WAVELENGTH_MAX_UM)
-    ax_psd.set_xlabel(r"wavelength, $\lambda$ [$\mu$m]")
-    ax_psd.set_ylabel(r"radial PSD of height, $C_h$ [$\mu$m$^4$]")
-    ax_psd.grid(True, which="both", alpha=0.25)
-    ax_psd.legend(fontsize=6)
+    ax_psd.set_xlabel(r"$\lambda$ [$\mu$m]")
+    ax_psd.set_ylabel(r"$\overline{C_h(\lambda)}$ [$\mu$m$^4$]")
+    ax_psd.legend()
 
     for result in results:
         if result["name"] == "initial":
@@ -1534,19 +1543,16 @@ def plot_radial_psd_and_gain_by_strain(
                 mean_gain[valid][order],
                 color=color,
                 lw=2.3,
-                label=f"{result['label']} mean gain",
+                label=result["label"],
             )
     ax_gain.axhline(1.0, color="0.45", lw=0.9, ls="--")
     ax_gain.set_xlim(RADIAL_WAVELENGTH_MIN_UM, RADIAL_WAVELENGTH_MAX_UM)
-    ax_gain.set_xlabel(r"wavelength, $\lambda$ [$\mu$m]")
-    ax_gain.set_ylabel(r"PSD gain, $C_h(\epsilon_p)/C_h(0)$")
-    ax_gain.grid(True, which="both", alpha=0.25)
-    ax_gain.legend(fontsize=6)
-
     ax_gain.set_xlabel(r"$\lambda$ [$\mu$m]")
     ax_gain.set_ylabel(
-        r"$\overline{C_h}(\lambda,\varepsilon_{zz})/" r"\overline{C_h}(\lambda,0)$"
+        r"$\overline{C_h(\lambda,\varepsilon_{zz})}/"
+        r"\overline{C_h(\lambda,0)}$"
     )
+    ax_gain.legend()
 
     ticks = RADIAL_TICKS_UM[
         (RADIAL_TICKS_UM >= RADIAL_WAVELENGTH_MIN_UM)
@@ -1561,8 +1567,7 @@ def plot_radial_psd_and_gain_by_strain(
     fig.tight_layout()
     if save:
         fig.savefig(
-            OUTPUT_DIR / "two_panel_height_psd_and_gain_by_strain_to_400um.png",
-            bbox_inches="tight",
+            OUTPUT_DIR / "two_panel_height_psd_and_gain_by_strain_to_400um.png"
         )
     return fig, summary, traces
 
@@ -1734,15 +1739,16 @@ def plot_bracketed_psd_gain_and_acf_change(
             ms=4.5,
             capsize=3,
             color=colors[label],
-            label=rf"$\epsilon_{{zz}}$ = {label}",
+            label=strain_group_legend_label(label),
         )
     ax_psd.axhline(0.0, color="0.45", lw=1.0, ls="--")
-    ax_psd.set_xlabel(r"wavelength bracket center, $\lambda$ [$\mu$m]")
-    ax_psd.set_ylabel(r"mean $\log_{10}$ PSD gain")
+    ax_psd.set_xlabel(r"$\lambda$ [$\mu$m]")
+    ax_psd.set_ylabel(
+        r"$\overline{\log_{10}\!\left["
+        r"C_h(\lambda,\varepsilon_{zz})/C_h(\lambda,0)\right]}$"
+    )
     # ax_psd.set_title("A. Bracketed PSD gain")
-
-    ax_psd.grid(True, alpha=0.25)
-    ax_psd.legend(fontsize=7)
+    ax_psd.legend()
 
     for label in labels:
         selected = acf_summary[acf_summary["strain_group"] == label].sort_values("r_um")
@@ -1751,7 +1757,7 @@ def plot_bracketed_psd_gain_and_acf_change(
             selected["mean"],
             lw=2.0,
             color=colors[label],
-            label=rf"$\epsilon_{{zz}}$ = {label}",
+            label=strain_group_legend_label(label),
         )
         ax_acf.fill_between(
             selected["r_um"],
@@ -1763,21 +1769,14 @@ def plot_bracketed_psd_gain_and_acf_change(
         )
     ax_acf.axhline(0.0, color="0.45", lw=1.0, ls="--")
     ax_acf.set_xlim(0.0, ACF_CHANGE_MAX_LAG_UM)
-    ax_acf.set_xlabel(r"radial lag, $r$ [$\mu$m]")
-    ax_acf.set_ylabel(r"mean ACF change, $\Delta C(r)=C(r;\epsilon)-C(r;0)$")
+    ax_acf.set_xlabel(r"$r$ [$\mu$m]")
+    ax_acf.set_ylabel(r"$\overline{\Delta C(r)}$")
     # ax_acf.set_title("B. Corrected radial ACF change")
-    ax_acf.grid(True, alpha=0.25)
-    ax_acf.legend(fontsize=7)
-
-    ax_psd.set_xlabel(r"wavelength bracket center, $\lambda$ [$\mu$m]")
-    ax_psd.set_ylabel(r"mean $\log_{10}$ PSD gain")
-    ax_acf.set_xlabel(r"radial lag, $r$ [$\mu$m]")
-    ax_acf.set_ylabel(r"mean ACF change, $\Delta C(r)=C(r;\epsilon)-C(r;0)$")
+    ax_acf.legend()
     fig.tight_layout()
     if save:
         fig.savefig(
-            OUTPUT_DIR / "two_panel_corrected_psd_gain_and_acf_change_by_strain.png",
-            bbox_inches="tight",
+            OUTPUT_DIR / "two_panel_corrected_psd_gain_and_acf_change_by_strain.png"
         )
     return fig
 
@@ -2059,51 +2058,50 @@ def plot_endpoint_spatial_configuration(
                 )
         # axis.set_title(title)
         axis.set_ylabel(ylabel)
-        axis.grid(True, alpha=0.25)
 
     plot_group(
         ax_psd_int,
         INTERRUPTED_CASES,
         "psd",
         "A. Interrupted: normalized radial PSD",
-        r"normalized radial PSD",
+        r"$\overline{\widetilde{C}_h(\lambda)}$",
     )
     plot_group(
         ax_psd_unint,
         UNINTERRUPTED_CASES,
         "psd",
         "B. Uninterrupted: normalized radial PSD",
-        r"normalized radial PSD",
+        r"$\overline{\widetilde{C}_h(\lambda)}$",
     )
     plot_group(
         ax_acf_int,
         INTERRUPTED_CASES,
         "acf",
         "C. Interrupted: radial ACF",
-        r"radial ACF, $C(r)$",
+        r"$\overline{C(r)}$",
     )
     plot_group(
         ax_acf_unint,
         UNINTERRUPTED_CASES,
         "acf",
         "D. Uninterrupted: radial ACF",
-        r"radial ACF, $C(r)$",
+        r"$\overline{C(r)}$",
     )
 
     for axis in (ax_psd_int, ax_psd_unint):
         axis.set_xscale("log")
         axis.set_xlim(ENDPOINT_WAVELENGTH_MIN_UM, ENDPOINT_WAVELENGTH_MAX_UM)
-        axis.set_xlabel(r"wavelength, $\lambda$ [$\mu$m]")
+        axis.set_xlabel(r"$\lambda$ [$\mu$m]")
         # if ENDPOINT_PSD_YLOG:
         axis.set_yscale("log")
-        axis.legend(fontsize=6, ncol=2)
+        axis.legend(ncol=2)
     for axis in (ax_acf_int, ax_acf_unint):
         axis.set_xlim(0.0, ENDPOINT_ACF_MAX_LAG_UM)
         axis.set_ylim(-0.35, 1.05)
-        axis.set_xlabel(r"radial lag, $r$ [$\mu$m]")
+        axis.set_xlabel(r"$r$ [$\mu$m]")
         axis.axhline(0.0, color="0.5", lw=0.8)
         axis.axhline(np.exp(-1.0), color="0.5", lw=0.8, ls=":")
-        axis.legend(fontsize=6, ncol=2)
+        axis.legend(ncol=2)
 
     ticks = np.array([6, 10, 20, 50, 100, 128], dtype=float)
     ticks = ticks[
@@ -2124,8 +2122,7 @@ def plot_endpoint_spatial_configuration(
     fig.tight_layout()
     if save:
         fig.savefig(
-            OUTPUT_DIR / "four_panel_endpoint_exp_vs_sim_normalized_psd_acf.png",
-            bbox_inches="tight",
+            OUTPUT_DIR / "four_panel_endpoint_exp_vs_sim_normalized_psd_acf.png"
         )
     return fig
 
